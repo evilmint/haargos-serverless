@@ -1,0 +1,82 @@
+service: haargos-serverless
+frameworkVersion: '3'
+	
+plugins:
+  - serverless-domain-manager
+
+custom:
+  customDomain:
+    domainName: api.haargos.smartrezydencja.pl
+    basePath: ''
+    stage: '$default'
+    createRoute53Record: true
+    endpointType: regional
+    apiType: http
+  userTableName: 'user-table-${sls:stage}'
+  monitoringDataTableName: 'monitoring-table-${sls:stage}'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [ UserTable, Arn ]
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [ HomeAssistantTable, Arn ]
+  environment:
+    USERS_TABLE: ${self:custom.userTableName}
+    MONITORING_TABLE: ${self:custom.monitoringDataTableName}
+
+functions:
+  api:
+    handler: index.handler
+    events:
+      - httpApi: '*'
+
+resources:
+  Resources:
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: secret
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: secret
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.userTableName}
+
+    HomeAssistantTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.monitoringDataTableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
