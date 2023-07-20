@@ -13,7 +13,7 @@ custom:
     endpointType: regional
     apiType: http
   userTableName: 'user-table-${sls:stage}'
-  monitoringDataTableName: 'monitoring-table-${sls:stage}'
+  observationDataTableName: 'observation-table-${sls:stage}'
 
 provider:
   name: aws
@@ -40,10 +40,10 @@ provider:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
           Resource:
-            - Fn::GetAtt: [ HomeAssistantTable, Arn ]
+            - Fn::GetAtt: [ ObservationTable, Arn ]
   environment:
     USERS_TABLE: ${self:custom.userTableName}
-    MONITORING_TABLE: ${self:custom.monitoringDataTableName}
+    OBSERVATION_TABLE: ${self:custom.observationDataTableName}
 
 functions:
   api:
@@ -69,14 +69,18 @@ resources:
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.userTableName}
 
-    HomeAssistantTable:
+    ObservationTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:custom.monitoringDataTableName}
+        TableName: ${self:custom.observationDataTableName}
         AttributeDefinitions:
           - AttributeName: id
+            AttributeType: S
+          - AttributeName: timestamp
             AttributeType: S
         KeySchema:
           - AttributeName: id
             KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST

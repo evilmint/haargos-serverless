@@ -2,14 +2,17 @@ const { PutCommand } = require("@aws-sdk/lib-dynamodb");
 const uuid = require("uuid");
 const observationSchema = require('./yup-observation-schema');
 
-async function monitoringHandler(dynamoDbClient, req, res) {
+async function observationHandler(dynamoDbClient, req, res) {
   try {
     const requestData = req.body;
     
     await observationSchema.validate(req.body, { abortEarly: true });
 
+    const now = new Date();
+    requestData.timestamp = now.toISOString();
+
     const params = {
-      TableName: process.env.MONITORING_TABLE,
+      TableName: process.env.OBSERVATION_TABLE,
       Item: { id: uuid.v4(), ...requestData },
     };
 
@@ -18,7 +21,7 @@ async function monitoringHandler(dynamoDbClient, req, res) {
       res.json({ status: 200 });
     } catch (error) {
       console.log(error);
-      res.status(500).json({ error: "Could not insert monitoring data." });
+      res.status(500).json({ error: "Could not insert observation data." });
     }
   } catch (error) {
     if (error.name === "ValidationError") {
@@ -26,9 +29,9 @@ async function monitoringHandler(dynamoDbClient, req, res) {
     } else {
       // Other unexpected errors
       console.error(error);
-      return res.status(500).json({ error: "Could not insert monitoring data." });
+      return res.status(500).json({ error: "Could not insert observation data." });
     }
   }
 }
 
-module.exports = monitoringHandler;
+module.exports = observationHandler;
