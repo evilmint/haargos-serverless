@@ -47,7 +47,7 @@ const observationSchema = yup.object().shape({
   docker: yup.object().shape({
     containers: yup.array().max(10).of(containerSchema).required(), // Set the maximum number of containers in the array
   }),
-  logs: yup.string().max(64000).required(), // Set the maximum length for logs string
+  logs: yup.string().max(64000), // Set the maximum length for logs string
   environment: environmentSchema.required(),
 });
 
