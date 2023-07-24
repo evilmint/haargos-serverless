@@ -26,7 +26,12 @@ async function observationHandler(dynamoDbClient, req, res) {
   } catch (error) {
     if (error.name === "ValidationError") {
       const validationErrors = error.errors; // TODO: Don't print when not in debug
-      return res.status(400).json({ error: validationErrors });
+
+      if (req.IN_DEV_STAGE) {
+        return res.status(400).json({ error: validationErrors });
+      } else {
+        return res.status(400).json({ error: "Bad request" });
+      }
     } else {
       // Other unexpected errors
       console.error(error);

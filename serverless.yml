@@ -44,6 +44,7 @@ provider:
   environment:
     USERS_TABLE: ${self:custom.userTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
+    SLS_STAGE: ${opt:stage, 'dev'}
 
 functions:
   api:

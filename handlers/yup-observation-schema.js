@@ -4,6 +4,12 @@ const yup = require('yup');
 const containerSchema = yup.object().shape({
   name: yup.string().max(100).required(),
   image: yup.string().max(200).required(),
+  running: yup.boolean().required(),
+  restarting: yup.string().max(200).required(),
+  state: yup.string().max(200).required(),
+  status: yup.string().max(200).required(),
+  started_at: yup.string().max(200).required(),
+  finished_at: yup.string().max(200).required(),
 });
 
 const environmentSchema = yup.object().shape({
@@ -43,6 +49,7 @@ const authSchema = yup.object().shape({
 });
 
 const observationSchema = yup.object().shape({
+  agent_version: yup.string().max(32).required(),
   auth: authSchema.required(),
   docker: yup.object().shape({
     containers: yup.array().max(10).of(containerSchema).required(), // Set the maximum number of containers in the array

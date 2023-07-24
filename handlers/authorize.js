@@ -25,6 +25,7 @@ const authorize = async (dynamoDbClient, req, res, next) => {
       }
   
       req.user = response.Item;
+      req.IN_DEV_STAGE = (process.env.SLS_STAGE === "dev");
   
       next(); // Proceed to the next middleware or the Lambda handler
     } catch (error) {
