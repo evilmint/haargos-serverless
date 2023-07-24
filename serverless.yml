@@ -13,7 +13,7 @@ custom:
     endpointType: regional
     apiType: http
   userTableName: 'user-table-${sls:stage}'
-  observationDataTableName: 'observation-table-${sls:stage}'
+  observationDataTableName: 'observations-table-${sls:stage}'
 
 provider:
   name: aws
@@ -75,12 +75,12 @@ resources:
       Properties:
         TableName: ${self:custom.observationDataTableName}
         AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
           - AttributeName: timestamp
             AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
         KeySchema:
-          - AttributeName: id
+          - AttributeName: userId
             KeyType: HASH
           - AttributeName: timestamp
             KeyType: RANGE

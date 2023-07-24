@@ -1,11 +1,35 @@
-const { PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { QueryCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 const uuid = require("uuid");
 const observationSchema = require('./yup-observation-schema');
 
-async function observationHandler(dynamoDbClient, req, res) {
+async function GetObservationsHandler(dynamoDbClient, req, res) {
   try {
-    const requestData = req.body;
-    
+    const userId = req.headers["x-user-id"];
+    const params = {
+      TableName: process.env.OBSERVATION_TABLE,
+      KeyConditionExpression: "#userId = :userId",
+      ExpressionAttributeNames: {
+        "#userId": "userId"
+      },
+      ExpressionAttributeValues: {
+        ":userId": userId
+      }
+    };
+
+    const response = await dynamoDbClient.send(new QueryCommand(params));
+
+    return res.status(200).json({ "body": { "items": response.Items } });
+  } catch (error) {
+    return res.status(500).json({ "error": error });
+  }
+}
+
+async function PostObservationsHandler(dynamoDbClient, req, res) {
+  try {
+    let requestData = req.body;
+
+    requestData.userId = req.headers['x-user-id'];
+
     await observationSchema.validate(req.body, { abortEarly: true });
 
     const now = new Date();
@@ -65,4 +89,4 @@ async function observationHandler(dynamoDbClient, req, res) {
   }
 }
 
-module.exports = observationHandler;
+module.exports = { GetObservationsHandler, PostObservationsHandler };

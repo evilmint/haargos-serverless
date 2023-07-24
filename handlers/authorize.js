@@ -2,12 +2,11 @@ const { GetItemCommand } = require("@aws-sdk/client-dynamodb");
 
 const authorize = async (dynamoDbClient, req, res, next) => {
     try {
-      const requestData = req.body;
-      const token = requestData.auth?.token;
-      const userId = requestData.auth?.user_id;
+      const token = req.headers["x-token"];
+      const userId = req.headers["x-user-id"];
   
-      if (!token) {
-        return res.status(400).json({ error: "Authentication token is missing." });
+      if (!token || !userId) {
+        return res.status(400).json({ error: "Authentication token or user ID is missing in headers." });
       }
   
       const params = {

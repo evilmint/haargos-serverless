@@ -43,14 +43,8 @@ const environmentSchema = yup.object().shape({
     .required(),
 });
 
-const authSchema = yup.object().shape({
-  token: yup.string().max(200).required(),
-  user_id: yup.string().max(200).required(),
-});
-
 const observationSchema = yup.object().shape({
   agent_version: yup.string().max(32).required(),
-  auth: authSchema.required(),
   docker: yup.object().shape({
     containers: yup.array().max(10).of(containerSchema).required(), // Set the maximum number of containers in the array
   }),
