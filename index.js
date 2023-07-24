@@ -1,7 +1,11 @@
 const express = require("express");
 const serverless = require("serverless-http");
 
-const { PostObservationsHandler, GetObservationsHandler } = require("./handlers/observations");
+const {
+    PostObservationsHandler,
+    GetObservationsHandler,
+} = require("./handlers/observations");
+
 const notFoundHandler = require("./handlers/not-found");
 const authorize = require("./handlers/authorize");
 
