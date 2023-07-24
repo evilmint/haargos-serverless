@@ -1,6 +1,7 @@
 const { GetItemCommand } = require("@aws-sdk/client-dynamodb");
+const dynamoDbClient = require('../dependencies/dynamodb.js');
 
-const authorize = async (dynamoDbClient, req, res, next) => {
+const authorize = async (req, res, next) => {
     try {
       const token = req.headers["x-token"];
       const userId = req.headers["x-user-id"];

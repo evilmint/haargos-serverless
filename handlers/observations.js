@@ -1,8 +1,9 @@
 const { QueryCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 const uuid = require("uuid");
 const observationSchema = require('./yup-observation-schema');
+const dynamoDbClient = require('../dependencies/dynamodb.js');
 
-async function GetObservationsHandler(dynamoDbClient, req, res) {
+async function GetObservationsHandler(req, res) {
   try {
     const userId = req.headers["x-user-id"];
     const params = {
@@ -24,7 +25,7 @@ async function GetObservationsHandler(dynamoDbClient, req, res) {
   }
 }
 
-async function PostObservationsHandler(dynamoDbClient, req, res) {
+async function PostObservationsHandler(req, res) {
   try {
     let requestData = req.body;
 
