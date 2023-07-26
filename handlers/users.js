@@ -1,6 +1,4 @@
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
-
-const dynamoDbClient = require("../dependencies/dynamodb.js");
 const _ = require("lodash");
 
 const UsersMeHandler = async (req, res, next) => {

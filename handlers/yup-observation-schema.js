@@ -43,6 +43,7 @@ const environmentSchema = yup.object().shape({
 });
 
 const observationSchema = yup.object().shape({
+    installation_id: yup.string().max(64).required(),
     agent_version: yup.string().max(32).required(),
     docker: yup.object().shape({
         containers: yup.array().max(10).of(containerSchema).required(), // Set the maximum number of containers in the array

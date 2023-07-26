@@ -14,10 +14,13 @@ custom:
     apiType: http
   userTableName: 'user-table-${sls:stage}'
   observationDataTableName: 'observations-table-${sls:stage}'
+  installationTableName: 'installations-table-${sls:stage}'
 
 provider:
   name: aws
   runtime: nodejs18.x
+  httpApi:
+    cors: true
   iam:
     role:
       statements:
@@ -26,24 +29,37 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
             - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
+            # - dynamodb:PutItem
+            # - dynamodb:UpdateItem
+            # - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [ UserTable, Arn ]
+
         - Effect: Allow
           Action:
             - dynamodb:Query
             - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
+            # - dynamodb:UpdateItem
+            # - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [ ObservationTable, Arn ]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            # - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            # - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [ InstallationTable, Arn ]
   environment:
     USERS_TABLE: ${self:custom.userTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
+    INSTALLATION_TABLE: ${self:custom.installationTableName}
     SLS_STAGE: ${opt:stage, 'dev'}
 
 functions:
@@ -83,5 +99,21 @@ resources:
           - AttributeName: userId
             KeyType: HASH
           - AttributeName: timestamp
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+  
+    InstallationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.installationTableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: id
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
