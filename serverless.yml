@@ -13,7 +13,7 @@ custom:
     endpointType: regional
     apiType: http
   userTableName: 'user-table-${sls:stage}'
-  observationDataTableName: 'observations-table-${sls:stage}'
+  observationDataTableName: 'observation-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
 
 provider:
@@ -91,14 +91,14 @@ resources:
       Properties:
         TableName: ${self:custom.observationDataTableName}
         AttributeDefinitions:
-          - AttributeName: timestamp
+          - AttributeName: installation_id
             AttributeType: S
           - AttributeName: userId
             AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
-          - AttributeName: timestamp
+          - AttributeName: installation_id
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
   

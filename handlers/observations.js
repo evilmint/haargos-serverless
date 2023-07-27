@@ -1,4 +1,8 @@
-const { QueryCommand, PutCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const {
+    QueryCommand,
+    PutCommand,
+    UpdateCommand,
+} = require("@aws-sdk/lib-dynamodb");
 const uuid = require("uuid");
 const observationSchema = require("./yup-observation-schema");
 const dynamoDbClient = require("../dependencies/dynamodb.js");
@@ -6,16 +10,27 @@ const dynamoDbClient = require("../dependencies/dynamodb.js");
 async function GetObservationsHandler(req, res) {
     try {
         const userId = req.headers["x-user-id"];
+        const isInstallationValid = await checkInstallation(
+            userId,
+            req.query.installation_id
+        );
+
+        if (!isInstallationValid) {
+            return res.status(400).json({ error: "Invalid installation." });
+        }
+
         const params = {
             TableName: process.env.OBSERVATION_TABLE,
-            KeyConditionExpression: "#userId = :userId",
+            KeyConditionExpression: "#userId = :userId AND #installationId = :installationId",
             ExpressionAttributeNames: {
                 "#userId": "userId",
+                "#installationId": "installation_id",
             },
             ExpressionAttributeValues: {
                 ":userId": userId,
+                ":installationId": req.query.installation_id,
             },
-            Limit: 3
+            Limit: 3,
         };
 
         const response = await dynamoDbClient.send(new QueryCommand(params));
@@ -50,7 +65,9 @@ async function PostObservationsHandler(req, res) {
             req.body.logs
         );
 
-        const healthy = requestData.dangers.filter(danger => danger != 'logs').length == 0;
+        const healthy =
+            requestData.dangers.filter((danger) => danger != "logs").length ==
+            0;
 
         const params = {
             TableName: process.env.OBSERVATION_TABLE,
@@ -59,7 +76,12 @@ async function PostObservationsHandler(req, res) {
 
         try {
             await dynamoDbClient.send(new PutCommand(params));
-            await updateInstallation(userId, requestData.installation_id, requestData.dangers, healthy);
+            await updateInstallation(
+                userId,
+                requestData.installation_id,
+                requestData.dangers,
+                healthy
+            );
 
             res.json({ status: 200 });
         } catch (error) {
@@ -116,32 +138,32 @@ function createDangers(environment, logs) {
     return dangers;
 }
 
-
 async function updateInstallation(userId, installationId, dangers, healthy) {
-  try {
-      const installationParams = {
-          TableName: process.env.INSTALLATION_TABLE,
-          Key: {
-              "userId": userId,
-              "id": installationId,
-          },
-          UpdateExpression: "SET #issues = :dangers, #lastAgentConnection = :lastAgentConnection, #healthy = :healthy",
-          ExpressionAttributeNames: {
-              "#issues": "issues",
-              "#lastAgentConnection": "last_agent_connection",
-              "#healthy": "healthy"
-          },
-          ExpressionAttributeValues: {
-              ":dangers": dangers,
-              ":lastAgentConnection": new Date().toISOString(),
-              ":healthy": healthy,
-          },
-      };
+    try {
+        const installationParams = {
+            TableName: process.env.INSTALLATION_TABLE,
+            Key: {
+                userId: userId,
+                id: installationId,
+            },
+            UpdateExpression:
+                "SET #issues = :dangers, #lastAgentConnection = :lastAgentConnection, #healthy = :healthy",
+            ExpressionAttributeNames: {
+                "#issues": "issues",
+                "#lastAgentConnection": "last_agent_connection",
+                "#healthy": "healthy",
+            },
+            ExpressionAttributeValues: {
+                ":dangers": dangers,
+                ":lastAgentConnection": new Date().toISOString(),
+                ":healthy": healthy,
+            },
+        };
 
-      await dynamoDbClient.send(new UpdateCommand(installationParams));
-  } catch (error) {
-      throw new Error("Failed to update installation: " + error.message);
-  }
+        await dynamoDbClient.send(new UpdateCommand(installationParams));
+    } catch (error) {
+        throw new Error("Failed to update installation: " + error.message);
+    }
 }
 
 async function checkInstallation(userId, installationId) {
