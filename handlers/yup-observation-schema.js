@@ -18,7 +18,8 @@ const zigbeeSchema = yup.object().shape({
       brand: yup.string().max(64).required(),
       entity_name: yup.string().max(64).required(),
       last_updated: yup.string().max(64).required(),
-      lqi: yup.number().required()
+      lqi: yup.number().required(),
+      integration_type: yup.string().max(32).required(),
     }),
   ),
 });
