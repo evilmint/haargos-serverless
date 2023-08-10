@@ -1,38 +1,66 @@
 const { GetItemCommand } = require('@aws-sdk/client-dynamodb');
+const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
+const AuthenticationClient = require('auth0').AuthenticationClient;
+/*
+const authConfig = require('auth_config.json');
+const auth0 = new AuthenticationClient({
+  domain: authConfig.domain,
+  clientId: authConfig.clientId,
+});
+*/
+const auth0 = new AuthenticationClient({
+  domain: 'dev-ofc2nc2a0lc4ncig.eu.auth0.com',
+  clientId: '3EGUK8VIxgWNygQ1My32IIMeFz2KFeXm',
+});
 
 const authorize = async (req, res, next) => {
   try {
     const token = req.headers['x-token'];
     const userId = req.headers['x-user-id'];
 
-    if (!token || !userId) {
-      return res.status(400).json({
-        error: 'Authentication token or user ID is missing in headers.',
-      });
+    var response;
+
+    if (token && userId) {
+      const params = {
+        TableName: process.env.USERS_TABLE,
+        Key: {
+          userId: { S: userId },
+          secret: { S: token },
+        },
+      };
+
+      response = await dynamoDbClient.send(new GetItemCommand(params));
+      req.user = response.Item;
+    } else {
+      const userProfile = await auth0.getProfile(req.auth.token);
+      const params = {
+        TableName: process.env.USERS_TABLE,
+        IndexName: "email-index",
+        KeyConditionExpression: '#email = :email',
+        ExpressionAttributeNames: {
+          '#email': 'email',
+        },
+        ExpressionAttributeValues: {
+          ':email': userProfile.email,
+        },
+      };
+
+      response = await dynamoDbClient.send(new QueryCommand(params));
+
+      if (!response.Items || response.Items.length == 0) {
+        return res.status(403).json({ error: 'Invalid authentication token.' });
+      }
+
+      req.user = response.Items[0];
     }
 
-    const params = {
-      TableName: process.env.USERS_TABLE,
-      Key: {
-        userId: { S: userId },
-        secret: { S: token },
-      },
-    };
-
-    const response = await dynamoDbClient.send(new GetItemCommand(params));
-
-    if (!response.Item) {
-      return res.status(403).json({ error: 'Invalid authentication token.' });
-    }
-
-    req.user = response.Item;
     req.IN_DEV_STAGE = process.env.SLS_STAGE === 'dev';
 
     next(); // Proceed to the next middleware or the Lambda handler
   } catch (error) {
     console.error('Error verifying user:', error);
-    return res.status(403).json({ error: 'Could not verify user.' });
+    return res.status(403).json({ error: `Could not verify user [error=${error}].` });
   }
 };
 

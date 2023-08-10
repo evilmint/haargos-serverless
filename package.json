@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "dependencies": {
+    "@auth0/auth0-react": "^2.2.0",
+    "@tanstack/react-table": "^8.9.3",
+    "auth0": "^3.6.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-oauth2-jwt-bearer": "^1.5.0",

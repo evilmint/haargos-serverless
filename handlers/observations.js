@@ -5,8 +5,7 @@ const dynamoDbClient = require('../dependencies/dynamodb.js');
 
 async function GetObservationsHandler(req, res) {
   try {
-    const userId = req.headers['x-user-id'];
-    const isInstallationValid = await checkInstallation(userId, req.query.installation_id);
+    const isInstallationValid = await checkInstallation(req.user.userId, req.query.installation_id);
 
     if (!isInstallationValid) {
       return res.status(400).json({ error: 'Invalid installation.' });
@@ -20,7 +19,7 @@ async function GetObservationsHandler(req, res) {
         '#installationId': 'installation_id',
       },
       ExpressionAttributeValues: {
-        ':userId': userId,
+        ':userId': req.user.userId,
         ':installationId': req.query.installation_id,
       },
       Limit: 3,

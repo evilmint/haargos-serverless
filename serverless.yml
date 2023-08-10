@@ -39,6 +39,13 @@ provider:
           Action:
             - dynamodb:Query
             - dynamodb:Scan
+          Resource: 
+            - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
             # - dynamodb:UpdateItem
@@ -78,11 +85,20 @@ resources:
             AttributeType: S
           - AttributeName: secret
             AttributeType: S
+          - AttributeName: email
+            AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
           - AttributeName: secret
             KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.userTableName}
 

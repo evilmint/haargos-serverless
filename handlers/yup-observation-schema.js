@@ -20,6 +20,8 @@ const zigbeeSchema = yup.object().shape({
       last_updated: yup.string().max(64).required(),
       lqi: yup.number().required(),
       integration_type: yup.string().max(32).required(),
+      power_source: yup.string().max(32).nullable(),
+      name_by_user: yup.string().max(128).nullable()
     }),
   ),
 });
