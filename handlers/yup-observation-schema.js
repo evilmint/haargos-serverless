@@ -22,7 +22,7 @@ const zigbeeSchema = yup.object().shape({
       integration_type: yup.string().max(32).required(),
       power_source: yup.string().max(32).nullable(),
       name_by_user: yup.string().max(128).nullable(),
-      battery_level: yup.number().nullable()
+      battery_level: yup.number().nullable(),
     }),
   ),
 });
@@ -58,6 +58,10 @@ const environmentSchema = yup.object().shape({
     .required(),
 });
 
+const haConfigSchema = yup.object().shape({
+  version: yup.string().max(32).nullable(),
+});
+
 const observationSchema = yup.object().shape({
   installation_id: yup.string().max(64).required(),
   agent_version: yup.string().max(32).required(),
@@ -67,6 +71,7 @@ const observationSchema = yup.object().shape({
   logs: yup.string().max(64000), // Set the maximum length for logs string
   environment: environmentSchema.required(),
   zigbee: zigbeeSchema,
+  ha_config: haConfigSchema.nullable(),
 });
 
 module.exports = observationSchema;
