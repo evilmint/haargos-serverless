@@ -21,7 +21,8 @@ const zigbeeSchema = yup.object().shape({
       lqi: yup.number().required(),
       integration_type: yup.string().max(32).required(),
       power_source: yup.string().max(32).nullable(),
-      name_by_user: yup.string().max(128).nullable()
+      name_by_user: yup.string().max(128).nullable(),
+      battery_level: yup.number().nullable()
     }),
   ),
 });

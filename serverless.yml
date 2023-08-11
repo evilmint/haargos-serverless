@@ -1,6 +1,6 @@
 service: haargos-serverless
 frameworkVersion: '3'
-	
+
 plugins:
   - serverless-domain-manager
 
@@ -15,6 +15,7 @@ custom:
   userTableName: 'user-table-${sls:stage}'
   observationDataTableName: 'observation-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
+  configurationTableName: 'configuration'
 
 provider:
   name: aws
@@ -33,13 +34,19 @@ provider:
             # - dynamodb:UpdateItem
             # - dynamodb:DeleteItem
           Resource:
-            - Fn::GetAtt: [ UserTable, Arn ]
+            - Fn::GetAtt: [UserTable, Arn]
+        - Effect: Allow
+          Action:
+            - dynamodb:UpdateItem
+            - dynamodb:GetItem
+          Resource:
+            - Fn::GetAtt: [ConfigurationTable, Arn]
 
         - Effect: Allow
           Action:
             - dynamodb:Query
             - dynamodb:Scan
-          Resource: 
+          Resource:
             - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
 
         - Effect: Allow
@@ -51,7 +58,7 @@ provider:
             # - dynamodb:UpdateItem
             # - dynamodb:DeleteItem
           Resource:
-            - Fn::GetAtt: [ ObservationTable, Arn ]
+            - Fn::GetAtt: [ObservationTable, Arn]
 
         - Effect: Allow
           Action:
@@ -62,18 +69,26 @@ provider:
             - dynamodb:UpdateItem
             # - dynamodb:DeleteItem
           Resource:
-            - Fn::GetAtt: [ InstallationTable, Arn ]
+            - Fn::GetAtt: [InstallationTable, Arn]
   environment:
     USERS_TABLE: ${self:custom.userTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     SLS_STAGE: ${opt:stage, 'dev'}
+    CONFIGURATION_TABLE: ${self:custom.configurationTableName}
 
 functions:
   api:
     handler: index.handler
     events:
       - httpApi: '*'
+
+  automation:
+    handler: automation.handler
+    events:
+      - schedule:
+          rate: rate(4 hours)
+          enabled: true
 
 resources:
   Resources:
@@ -117,7 +132,7 @@ resources:
           - AttributeName: installation_id
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-  
+
     InstallationTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -132,4 +147,16 @@ resources:
             KeyType: HASH
           - AttributeName: id
             KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    ConfigurationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.configurationTableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
         BillingMode: PAY_PER_REQUEST
