@@ -62,16 +62,44 @@ const haConfigSchema = yup.object().shape({
   version: yup.string().max(32).nullable(),
 });
 
+const automationsSchema = yup.object().shape({
+  id: yup.string().max(32).required(),
+  alias: yup.string().max(255).required(),
+  description: yup.string().max(4096),
+
+  last_triggered: yup.string().max(64).nullable(),
+  friendly_name: yup.string().max(255).nullable(),
+  state: yup.string().max(64).nullable(),
+});
+
+const scriptsSchema = yup.object().shape({
+  alias: yup.string().max(64).required(),
+
+  last_triggered: yup.string().max(64).nullable(),
+  friendly_name: yup.string().max(255).nullable(),
+  state: yup.string().max(64).nullable(),
+});
+
+const scenesSchema = yup.object().shape({
+  id: yup.string().max(64).required(),
+  name: yup.string().max(64).required(),
+  friendly_name: yup.string().max(255).nullable(),
+  state: yup.string().max(64).nullable(),
+});
+
 const observationSchema = yup.object().shape({
   installation_id: yup.string().max(64).required(),
   agent_version: yup.string().max(32).required(),
   docker: yup.object().shape({
-    containers: yup.array().max(10).of(containerSchema).required(), // Set the maximum number of containers in the array
+    containers: yup.array().max(10).of(containerSchema).required(),
   }),
-  logs: yup.string().max(64000), // Set the maximum length for logs string
+  logs: yup.string().max(64 * 1000),
   environment: environmentSchema.required(),
   zigbee: zigbeeSchema,
   ha_config: haConfigSchema.nullable(),
+  automations: yup.array().of(automationsSchema),
+  scripts: yup.array().of(scriptsSchema),
+  scenes: yup.array().of(scenesSchema),
 });
 
 module.exports = observationSchema;

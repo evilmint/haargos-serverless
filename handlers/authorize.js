@@ -2,16 +2,10 @@ const { GetItemCommand } = require('@aws-sdk/client-dynamodb');
 const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
 const AuthenticationClient = require('auth0').AuthenticationClient;
-/*
-const authConfig = require('auth_config.json');
+
 const auth0 = new AuthenticationClient({
-  domain: authConfig.domain,
-  clientId: authConfig.clientId,
-});
-*/
-const auth0 = new AuthenticationClient({
-  domain: 'dev-ofc2nc2a0lc4ncig.eu.auth0.com',
-  clientId: '3EGUK8VIxgWNygQ1My32IIMeFz2KFeXm',
+  domain: process.env.AUTH0_DOMAIN,
+  clientId: process.env.AUTH0_CLIENT_ID
 });
 
 const authorize = async (req, res, next) => {
@@ -36,7 +30,7 @@ const authorize = async (req, res, next) => {
       const userProfile = await auth0.getProfile(req.auth.token);
       const params = {
         TableName: process.env.USERS_TABLE,
-        IndexName: "email-index",
+        IndexName: 'email-index',
         KeyConditionExpression: '#email = :email',
         ExpressionAttributeNames: {
           '#email': 'email',

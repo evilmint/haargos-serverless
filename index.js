@@ -12,15 +12,13 @@ const { auth } = require('express-oauth2-jwt-bearer');
 
 const app = express();
 
-// TODO: Fix for different environments
 const jwtCheck = auth({
-  audience: 'https://api.haargos.smartrezydencja.pl',
-  issuerBaseURL: 'https://dev-ofc2nc2a0lc4ncig.eu.auth0.com/',
+  audience: process.env.AUTH0_AUDIENCE,
+  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
   tokenSigningAlg: 'RS256',
 });
 
 app.use(cors());
-// app.use(jwtCheck);
 app.use(express.json());
 
 app.get('/users/me', [jwtCheck, authorize], UsersMeHandler);

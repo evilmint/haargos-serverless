@@ -6,7 +6,7 @@ const getLatestRelease = async () => {
   try {
     // Define the parameters to get the record from DynamoDB
     const params = {
-      TableName: 'configuration',
+      TableName: process.env.CONFIGURATION_TABLE,
       Key: {
         id: { S: 'latest_release' },
       },
@@ -19,7 +19,7 @@ const getLatestRelease = async () => {
     // Extract the latest release version
     const latestRelease = result.Item?.version?.S;
 
-    console.log(`Latest release: ${latestRelease ?? "not found"}`);
+    console.log(`Latest release: ${latestRelease ?? 'not found'}`);
     return latestRelease;
   } catch (error) {
     console.error('An error occurred:', error);
