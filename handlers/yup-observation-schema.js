@@ -33,7 +33,7 @@ const environmentSchema = yup.object().shape({
     model_name: yup.string().max(100).required(),
     cpu_mhz: yup.string().max(20).required(),
     load: yup.number().required(),
-  }),
+  }).nullable(),
   memory: yup.object().shape({
     total: yup.number().required(),
     used: yup.number().required(),
@@ -41,7 +41,7 @@ const environmentSchema = yup.object().shape({
     shared: yup.number().required(),
     buff_cache: yup.number().required(),
     available: yup.number().required(),
-  }),
+  }).nullable(),
   storage: yup
     .array()
     .max(20) // Set the maximum number of elements in the array

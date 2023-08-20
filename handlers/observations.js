@@ -76,25 +76,30 @@ async function PostObservationsHandler(req, res) {
 
 function createDangers(environment, logs) {
   let dangers = [];
-  const cpuUsagePercentage = parseFloat(environment.cpu.load);
   const volumeUsagePercentage = parseFloat(
     environment.storage.reduce((highest, current) => {
       const cur = parseInt(current.use_percentage.slice(0, -1));
       return cur > highest ? cur : highest;
     }, 0),
   );
-  const memoryUsagePercentage = (parseFloat(environment.memory.used) / parseFloat(environment.memory.total)) * 100;
 
-  if (cpuUsagePercentage > 80) {
-    dangers.push('high_cpu_usage');
+  if (environment.cpu != null) {
+    const cpuUsagePercentage = parseFloat(environment.cpu.load);
+    if (cpuUsagePercentage > 80) {
+      dangers.push('high_cpu_usage');
+    }
   }
 
   if (volumeUsagePercentage > 90) {
     dangers.push('high_volume_usage');
   }
 
-  if (memoryUsagePercentage > 70) {
-    dangers.push('high_memory_usage');
+  if (environment.memory != null) {
+    const memoryUsagePercentage = (parseFloat(environment.memory.used) / parseFloat(environment.memory.total)) * 100;
+
+    if (memoryUsagePercentage > 70) {
+      dangers.push('high_memory_usage');
+    }
   }
 
   if (logs && logs.includes('ERROR')) {
