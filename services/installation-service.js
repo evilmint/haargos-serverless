@@ -20,7 +20,7 @@ async function checkInstallation(userId, installationId) {
   return response.Items && response.Items.length > 0;
 }
 
-async function updateInstallation(userId, installationId, dangers, healthy) {
+async function updateInstallation(userId, installationId, dangers) {
   try {
     const installationParams = {
       TableName: process.env.INSTALLATION_TABLE,

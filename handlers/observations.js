@@ -1,8 +1,8 @@
-const { QueryCommand, PutCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutCommand } = require('@aws-sdk/lib-dynamodb');
 const uuid = require('uuid');
 const observationSchema = require('./yup-observation-schema');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
-const { getObservations, putObservation } = require('../services/observation-service');
+const { getObservations } = require('../services/observation-service');
 const { checkInstallation, updateInstallation } = require('../services/installation-service');
 
 async function GetObservationsHandler(req, res) {
@@ -23,11 +23,14 @@ async function GetObservationsHandler(req, res) {
 
 async function PostObservationsHandler(req, res) {
   try {
-    let requestData = req.body;
-    requestData.userId = req.headers['x-user-id'];
+    const userId = req.agentToken['user_id'];
 
-    const userId = req.headers['x-user-id'];
-    const isInstallationValid = await checkInstallation(userId, requestData.installation_id);
+    req.body.installation_id = req.agentToken['installation_id'];
+  
+    let requestData = req.body;
+    requestData.userId = userId;
+
+    const isInstallationValid = await checkInstallation(userId, req.agentToken['installation_id']);
 
     if (!isInstallationValid) {
       return res.status(400).json({ error: 'Invalid installation.' });
@@ -38,10 +41,10 @@ async function PostObservationsHandler(req, res) {
     requestData.timestamp = new Date().toISOString();
     requestData.dangers = createDangers(req.body.environment, req.body.logs);
 
-    const healthy =
-      requestData.dangers.filter(danger => {
-        return ['high_cpu_usage', 'high_volume_usage', 'high_memory_usage'].includes(danger);
-      }).length == 0;
+    // const healthy =
+    //   requestData.dangers.filter(danger => {
+    //     return ['high_cpu_usage', 'high_volume_usage', 'high_memory_usage'].includes(danger);
+    //   }).length == 0;
 
     const params = {
       TableName: process.env.OBSERVATION_TABLE,
@@ -50,7 +53,7 @@ async function PostObservationsHandler(req, res) {
 
     try {
       await dynamoDbClient.send(new PutCommand(params));
-      await updateInstallation(userId, requestData.installation_id, requestData.dangers, healthy);
+      await updateInstallation(userId, requestData.installation_id, requestData.dangers);
 
       res.json({ status: 200 });
     } catch (error) {
