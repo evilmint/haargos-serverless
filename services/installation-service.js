@@ -1,5 +1,7 @@
-const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, UpdateCommand, PutItemCommand } = require('@aws-sdk/lib-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
+const crypto = require('crypto');
+const uuid = require('uuid');
 
 async function checkInstallation(userId, installationId) {
   const params = {
@@ -48,4 +50,49 @@ async function updateInstallation(userId, installationId, dangers) {
   }
 }
 
-module.exports = { checkInstallation, updateInstallation };
+async function createInstallation(userId, name, instance = '', secret) {
+  const id = uuid.v4();
+  const data = {
+    secret: secret,
+    installation_id: id,
+    user_id: userId,
+  };
+
+  const sharedKey = crypto
+    .createHash('sha256')
+    .update(String('a very very secret key indeed!'))
+    .digest('base64')
+    .slice(0, 32);
+  const agentToken = encrypt(data, sharedKey);
+
+  const installation = {
+    userId: { S: userId },
+    id: { S: id },
+    agent_token: { S: agentToken },
+    healthy: {
+      M: {
+        is_healthy: { BOOL: false },
+        last_updated: { NULL: true },
+      },
+    },
+    issues: { L: [] },
+    last_agent_connection: { NULL: true },
+    name: { S: name },
+    notes: { S: '' },
+    urls: {
+      M: {
+        instance: { S: instance },
+      },
+    },
+  };
+
+  const params = {
+    TableName: process.env.INSTALLATION_TABLE,
+    Item: installation,
+  };
+
+  await dynamoDbClient.send(new PutItemCommand(params));
+  return installation;
+}
+
+module.exports = { checkInstallation, updateInstallation, createInstallation };

@@ -28,20 +28,26 @@ const zigbeeSchema = yup.object().shape({
 });
 
 const environmentSchema = yup.object().shape({
-  cpu: yup.object().shape({
-    architecture: yup.string().max(50).required(),
-    model_name: yup.string().max(100).required(),
-    cpu_mhz: yup.string().max(20).required(),
-    load: yup.number().required(),
-  }).nullable(),
-  memory: yup.object().shape({
-    total: yup.number().required(),
-    used: yup.number().required(),
-    free: yup.number().required(),
-    shared: yup.number().required(),
-    buff_cache: yup.number().required(),
-    available: yup.number().required(),
-  }).nullable(),
+  cpu: yup
+    .object()
+    .shape({
+      architecture: yup.string().max(50).required(),
+      model_name: yup.string().max(100).required(),
+      cpu_mhz: yup.string().max(20).required(),
+      load: yup.number().required(),
+    })
+    .nullable(),
+  memory: yup
+    .object()
+    .shape({
+      total: yup.number().required(),
+      used: yup.number().required(),
+      free: yup.number().required(),
+      shared: yup.number().required(),
+      buff_cache: yup.number().required(),
+      available: yup.number().required(),
+    })
+    .nullable(),
   storage: yup
     .array()
     .max(20) // Set the maximum number of elements in the array

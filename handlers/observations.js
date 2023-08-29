@@ -26,7 +26,7 @@ async function PostObservationsHandler(req, res) {
     const userId = req.agentToken['user_id'];
 
     req.body.installation_id = req.agentToken['installation_id'];
-  
+
     let requestData = req.body;
     requestData.userId = userId;
 

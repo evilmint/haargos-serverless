@@ -35,9 +35,9 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
             - dynamodb:GetItem
-            # - dynamodb:PutItem
-            # - dynamodb:UpdateItem
-            # - dynamodb:DeleteItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [UserTable, Arn]
         - Effect: Allow
@@ -61,7 +61,7 @@ provider:
             - dynamodb:GetItem
             - dynamodb:PutItem
             # - dynamodb:UpdateItem
-            # - dynamodb:DeleteItem
+            - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [ObservationTable, Arn]
 
@@ -70,9 +70,9 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
             - dynamodb:GetItem
-            # - dynamodb:PutItem
+            - dynamodb:PutItem
             - dynamodb:UpdateItem
-            # - dynamodb:DeleteItem
+            - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [InstallationTable, Arn]
   environment:

@@ -6,32 +6,35 @@ const crypto = require('crypto');
 
 const auth0 = new AuthenticationClient({
   domain: process.env.AUTH0_DOMAIN,
-  clientId: process.env.AUTH0_CLIENT_ID
+  clientId: process.env.AUTH0_CLIENT_ID,
 });
 
 function decrypt(data, key) {
   const buffer = Buffer.from(data, 'base64');
-  const iv = buffer.slice(0, 16);
-  const encryptedData = buffer.slice(16);
+  const iv = buffer.subarray(0, 16);
+  const encryptedData = buffer.subarray(16);
   const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key, 'utf-8'), iv);
   let decrypted = decipher.update(encryptedData);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
   return JSON.parse(decrypted.toString());
 }
 
-
 const authorize = async (req, res, next) => {
   try {
-    const sharedKey = crypto.createHash('sha256').update(String('a very very secret key indeed!')).digest('base64').substr(0, 32);
     const agentToken = req.headers['x-agent-token'];
-    const decryptedData = decrypt(agentToken, sharedKey);
-
-    const userId = decryptedData['user_id'];
-    const secret = decryptedData['secret'];
-
     var response;
 
-    if (secret && userId) {
+    if (agentToken) {
+      const sharedKey = crypto
+        .createHash('sha256')
+        .update(String('a very very secret key indeed!'))
+        .digest('base64')
+        .slice(0, 32);
+      const decryptedData = decrypt(agentToken, sharedKey);
+
+      const userId = decryptedData['user_id'];
+      const secret = decryptedData['secret'];
+
       const params = {
         TableName: process.env.USERS_TABLE,
         Key: {
@@ -43,7 +46,7 @@ const authorize = async (req, res, next) => {
       req.agentToken = decryptedData;
       response = await dynamoDbClient.send(new GetItemCommand(params));
       req.user = response.Item;
-    } else {
+    } else if (req.auth && req.auth.token) {
       const userProfile = await auth0.getProfile(req.auth.token);
       const params = {
         TableName: process.env.USERS_TABLE,
@@ -64,6 +67,8 @@ const authorize = async (req, res, next) => {
       }
 
       req.user = response.Items[0];
+    } else {
+      return res.status(403).json({ error: 'Invalid authentication token.' });
     }
 
     req.IN_DEV_STAGE = process.env.SLS_STAGE === 'dev';
