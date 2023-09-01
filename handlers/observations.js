@@ -41,11 +41,6 @@ async function PostObservationsHandler(req, res) {
     requestData.timestamp = new Date().toISOString();
     requestData.dangers = createDangers(req.body.environment, req.body.logs);
 
-    // const healthy =
-    //   requestData.dangers.filter(danger => {
-    //     return ['high_cpu_usage', 'high_volume_usage', 'high_memory_usage'].includes(danger);
-    //   }).length == 0;
-
     const params = {
       TableName: process.env.OBSERVATION_TABLE,
       Item: { id: uuid.v4(), ...requestData },

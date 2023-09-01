@@ -3,6 +3,7 @@ const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
 const AuthenticationClient = require('auth0').AuthenticationClient;
 const crypto = require('crypto');
+const jwt_decode = require('jwt-decode');
 
 const auth0 = new AuthenticationClient({
   domain: process.env.AUTH0_DOMAIN,
@@ -47,16 +48,15 @@ const authorize = async (req, res, next) => {
       response = await dynamoDbClient.send(new GetItemCommand(params));
       req.user = response.Item;
     } else if (req.auth && req.auth.token) {
-      const userProfile = await auth0.getProfile(req.auth.token);
       const params = {
         TableName: process.env.USERS_TABLE,
-        IndexName: 'email-index',
-        KeyConditionExpression: '#email = :email',
+        IndexName: 'sub-index',
+        KeyConditionExpression: '#sub = :sub',
         ExpressionAttributeNames: {
-          '#email': 'email',
+          '#sub': 'sub',
         },
         ExpressionAttributeValues: {
-          ':email': userProfile.email,
+          ':sub': jwt_decode(req.auth.token).sub.split('|')[1],
         },
       };
 

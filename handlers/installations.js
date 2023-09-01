@@ -6,15 +6,6 @@ const crypto = require('crypto');
 const { unmarshall } = require('@aws-sdk/util-dynamodb');
 const { createInstallation } = require('../services/installation-service');
 
-function encrypt(data, key) {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key, 'utf-8'), iv);
-  let encrypted = cipher.update(JSON.stringify(data));
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  const encryptedData = Buffer.concat([iv, encrypted]);
-  return encryptedData.toString('base64');
-}
-
 const getLatestRelease = async () => {
   try {
     // Define the parameters to get the record from DynamoDB
@@ -73,8 +64,6 @@ const CreateInstallationHandler = async (req, res) => {
     if (!instance) {
       instance = '';
     }
-
-    const id = uuid.v4();
 
     const installation = await createInstallation(req.user.userId, name, instance, req.user.secret);
 

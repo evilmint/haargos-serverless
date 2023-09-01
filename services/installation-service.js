@@ -1,4 +1,5 @@
-const { QueryCommand, UpdateCommand, PutItemCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutItemCommand } = require('@aws-sdk/client-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
 const crypto = require('crypto');
 const uuid = require('uuid');
@@ -48,6 +49,15 @@ async function updateInstallation(userId, installationId, dangers) {
   } catch (error) {
     throw new Error('Failed to update installation: ' + error.message);
   }
+}
+
+function encrypt(data, key) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key, 'utf-8'), iv);
+  let encrypted = cipher.update(JSON.stringify(data));
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  const encryptedData = Buffer.concat([iv, encrypted]);
+  return encryptedData.toString('base64');
 }
 
 async function createInstallation(userId, name, instance = '', secret) {
