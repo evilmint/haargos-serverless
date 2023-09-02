@@ -6,8 +6,14 @@ const { UsersMeHandler } = require('./handlers/users');
 const notFoundHandler = require('./handlers/not-found');
 const authorize = require('./handlers/authorize');
 const { auth } = require('express-oauth2-jwt-bearer');
-const { GetInstallationsHandler, CreateInstallationHandler } = require('./handlers/installations');
-const { PostObservationsHandler, GetObservationsHandler } = require('./handlers/observations');
+const {
+  GetInstallationsHandler,
+  CreateInstallationHandler,
+} = require('./handlers/installations');
+const {
+  PostObservationsHandler,
+  GetObservationsHandler,
+} = require('./handlers/observations');
 
 const app = express();
 

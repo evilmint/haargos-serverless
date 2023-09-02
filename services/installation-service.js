@@ -1,7 +1,7 @@
 const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { PutItemCommand } = require('@aws-sdk/client-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
-const crypto = require('crypto');
+const { encrypt } = require('../lib/crypto');
 const uuid = require('uuid');
 
 async function checkInstallation(userId, installationId) {
@@ -31,7 +31,8 @@ async function updateInstallation(userId, installationId, dangers) {
         userId: userId,
         id: installationId,
       },
-      UpdateExpression: 'SET #issues = :dangers, #lastAgentConnection = :lastAgentConnection',
+      UpdateExpression:
+        'SET #issues = :dangers, #lastAgentConnection = :lastAgentConnection',
       ExpressionAttributeNames: {
         '#issues': 'issues',
         '#lastAgentConnection': 'last_agent_connection',
@@ -51,15 +52,6 @@ async function updateInstallation(userId, installationId, dangers) {
   }
 }
 
-function encrypt(data, key) {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key, 'utf-8'), iv);
-  let encrypted = cipher.update(JSON.stringify(data));
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  const encryptedData = Buffer.concat([iv, encrypted]);
-  return encryptedData.toString('base64');
-}
-
 async function createInstallation(userId, name, instance = '', secret) {
   const id = uuid.v4();
   const data = {
@@ -68,12 +60,7 @@ async function createInstallation(userId, name, instance = '', secret) {
     user_id: userId,
   };
 
-  const sharedKey = crypto
-    .createHash('sha256')
-    .update(String('a very very secret key indeed!'))
-    .digest('base64')
-    .slice(0, 32);
-  const agentToken = encrypt(data, sharedKey);
+  const agentToken = encrypt(data);
 
   const installation = {
     userId: { S: userId },

@@ -16,6 +16,8 @@ custom:
   observationDataTableName: 'observation-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
+  crypto:
+    key: '793I4BGlD$czvtCWKBDWKy7Og6GgFl^@'
   auth0:
     issuerBaseUrl: 'https://dev-ofc2nc2a0lc4ncig.eu.auth0.com/'
     audience: 'https://api.haargos.smartrezydencja.pl'
@@ -88,6 +90,9 @@ provider:
     AUTH0_AUDIENCE: ${self:custom.auth0.audience}
     AUTH0_DOMAIN: ${self:custom.auth0.domain}
     AUTH0_CLIENT_ID: ${self:custom.auth0.clientId}
+
+    # CRYPTO
+    CRYPTO_KEY: ${self:custom.crypto.key}
 
 functions:
   api:

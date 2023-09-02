@@ -1,13 +1,19 @@
 const { PutCommand } = require('@aws-sdk/lib-dynamodb');
 const uuid = require('uuid');
 const observationSchema = require('./yup-observation-schema');
-const dynamoDbClient = require('../dependencies/dynamodb.js');
+const dynamoDbClient = require('../dependencies/dynamodb');
 const { getObservations } = require('../services/observation-service');
-const { checkInstallation, updateInstallation } = require('../services/installation-service');
+const {
+  checkInstallation,
+  updateInstallation,
+} = require('../services/installation-service');
 
 async function GetObservationsHandler(req, res) {
   try {
-    const isInstallationValid = await checkInstallation(req.user.userId, req.query.installation_id);
+    const isInstallationValid = await checkInstallation(
+      req.user.userId,
+      req.query.installation_id,
+    );
 
     if (!isInstallationValid) {
       return res.status(400).json({ error: 'Invalid installation.' });
@@ -30,7 +36,10 @@ async function PostObservationsHandler(req, res) {
     let requestData = req.body;
     requestData.userId = userId;
 
-    const isInstallationValid = await checkInstallation(userId, req.agentToken['installation_id']);
+    const isInstallationValid = await checkInstallation(
+      userId,
+      req.agentToken['installation_id'],
+    );
 
     if (!isInstallationValid) {
       return res.status(400).json({ error: 'Invalid installation.' });
@@ -67,7 +76,9 @@ async function PostObservationsHandler(req, res) {
     } else {
       // Other unexpected errors
       console.error(error);
-      return res.status(500).json({ error: 'Could not insert observation data [error=' + error + '].' });
+      return res
+        .status(500)
+        .json({ error: 'Could not insert observation data [error=' + error + '].' });
     }
   }
 }
@@ -93,7 +104,8 @@ function createDangers(environment, logs) {
   }
 
   if (environment.memory != null) {
-    const memoryUsagePercentage = (parseFloat(environment.memory.used) / parseFloat(environment.memory.total)) * 100;
+    const memoryUsagePercentage =
+      (parseFloat(environment.memory.used) / parseFloat(environment.memory.total)) * 100;
 
     if (memoryUsagePercentage > 70) {
       dangers.push('high_memory_usage');

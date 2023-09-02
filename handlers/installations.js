@@ -1,8 +1,6 @@
 const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const { PutItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
-const dynamoDbClient = require('../dependencies/dynamodb.js');
-const uuid = require('uuid');
-const crypto = require('crypto');
+const dynamoDbClient = require('../dependencies/dynamodb');
 const { unmarshall } = require('@aws-sdk/util-dynamodb');
 const { createInstallation } = require('../services/installation-service');
 
@@ -47,7 +45,9 @@ async function GetInstallationsHandler(req, res) {
     const response = await dynamoDbClient.send(new QueryCommand(params));
     const latestHaRelease = await getLatestRelease();
 
-    return res.status(200).json({ body: { latest_ha_release: latestHaRelease, items: response.Items } });
+    return res
+      .status(200)
+      .json({ body: { latest_ha_release: latestHaRelease, items: response.Items } });
   } catch (error) {
     return res.status(500).json({ error: error });
   }
@@ -65,7 +65,12 @@ const CreateInstallationHandler = async (req, res) => {
       instance = '';
     }
 
-    const installation = await createInstallation(req.user.userId, name, instance, req.user.secret);
+    const installation = await createInstallation(
+      req.user.userId,
+      name,
+      instance,
+      req.user.secret,
+    );
 
     return res.status(201).json(unmarshall(installation));
   } catch (error) {
