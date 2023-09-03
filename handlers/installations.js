@@ -2,7 +2,10 @@ const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const { PutItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb');
 const { unmarshall } = require('@aws-sdk/util-dynamodb');
-const { createInstallation } = require('../services/installation-service');
+const {
+  createInstallation,
+  deleteInstallation,
+} = require('../services/installation-service');
 
 const getLatestRelease = async () => {
   try {
@@ -79,4 +82,18 @@ const CreateInstallationHandler = async (req, res) => {
   }
 };
 
-module.exports = { CreateInstallationHandler, GetInstallationsHandler };
+const DeleteInstallationHandler = async (req, res) => {
+  try {
+    await deleteInstallation(req.user.userId, req.params.installationId);
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('An error occurred:', error);
+    return res.status(500).json({ error: error });
+  }
+};
+
+module.exports = {
+  CreateInstallationHandler,
+  GetInstallationsHandler,
+  DeleteInstallationHandler,
+};

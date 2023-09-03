@@ -1,5 +1,5 @@
 const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-const { PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
 const { encrypt } = require('../lib/crypto');
 const uuid = require('uuid');
@@ -52,6 +52,22 @@ async function updateInstallation(userId, installationId, dangers) {
   }
 }
 
+async function deleteInstallation(userId, installationId) {
+  try {
+    const params = {
+      TableName: process.env.INSTALLATION_TABLE,
+      Key: {
+        'userId': { S: userId },
+        'id': { S: installationId },
+      },
+    };
+
+    await dynamoDbClient.send(new DeleteItemCommand(params));
+  } catch (error) {
+    throw new Error('Failed to delete installation: ' + error.message);
+  }
+}
+
 async function createInstallation(userId, name, instance = '', secret) {
   const id = uuid.v4();
   const data = {
@@ -92,4 +108,4 @@ async function createInstallation(userId, name, instance = '', secret) {
   return installation;
 }
 
-module.exports = { checkInstallation, updateInstallation, createInstallation };
+module.exports = { checkInstallation, updateInstallation, createInstallation, deleteInstallation };
