@@ -1,6 +1,6 @@
 const { PutCommand } = require('@aws-sdk/lib-dynamodb');
 const uuid = require('uuid');
-const observationSchema = require('./yup-observation-schema');
+const observationSchema = require('../lib/yup/observation-schema');
 const dynamoDbClient = require('../dependencies/dynamodb');
 const { getObservations } = require('../services/observation-service');
 const {
@@ -45,7 +45,15 @@ async function PostObservationsHandler(req, res) {
       return res.status(400).json({ error: 'Invalid installation.' });
     }
 
-    await observationSchema.validate(req.body, { abortEarly: true });
+    try {
+      await observationSchema.validate(req.body, { abortEarly: true });
+    } catch {
+      if (req.IN_DEV_STAGE) {
+        return res.status(400).json({ error: validationErrors });
+      } else {
+        return res.status(400).json({ error: 'Bad request' });
+      }
+    }
 
     requestData.timestamp = new Date().toISOString();
     requestData.dangers = createDangers(req.body.environment, req.body.logs);
