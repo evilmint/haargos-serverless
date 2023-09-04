@@ -6,6 +6,7 @@ const {
   createInstallation,
   deleteInstallation,
 } = require('../services/installation-service');
+const installationSchema = require('../lib/yup/installation-schema');
 
 const getLatestRelease = async () => {
   try {
@@ -67,6 +68,8 @@ const CreateInstallationHandler = async (req, res) => {
     if (!instance) {
       instance = '';
     }
+
+    await installationSchema.validate(req.body, { abortEarly: true });
 
     const installation = await createInstallation(
       req.user.userId,
