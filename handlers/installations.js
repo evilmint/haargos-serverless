@@ -5,6 +5,7 @@ const { unmarshall } = require('@aws-sdk/util-dynamodb');
 const {
   createInstallation,
   deleteInstallation,
+  updateInstallation
 } = require('../services/installation-service');
 const installationSchema = require('../lib/yup/installation-schema');
 
@@ -95,8 +96,23 @@ const DeleteInstallationHandler = async (req, res) => {
   }
 };
 
+const UpdateInstallationHandler = async (req, res) => {
+  try {
+    await installationSchema.validate(req.body, { abortEarly: true });
+
+    let { name, instance } = req.body;
+
+    await updateInstallation(req.user.userId, req.params.installationId, name, instance);
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('An error occurred:', error);
+    return res.status(500).json({ error: error });
+  }
+};
+
 module.exports = {
   CreateInstallationHandler,
   GetInstallationsHandler,
   DeleteInstallationHandler,
+  UpdateInstallationHandler,
 };

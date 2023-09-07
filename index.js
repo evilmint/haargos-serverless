@@ -11,7 +11,9 @@ const {
   GetInstallationsHandler,
   CreateInstallationHandler,
   DeleteInstallationHandler,
+  UpdateInstallationHandler,
 } = require('./handlers/installations');
+const { DeleteAccountHandler, UpdateAccountHandler } = require('./handlers/account');
 const {
   PostObservationsHandler,
   GetObservationsHandler,
@@ -31,11 +33,18 @@ app.use(compressForAWSLambda);
 app.get('/users/me', [jwtCheck, authorize], UsersMeHandler);
 app.get('/installations', [jwtCheck, authorize], GetInstallationsHandler);
 app.post('/installations', [jwtCheck, authorize], CreateInstallationHandler);
+app.put(
+  '/installations/:installationId',
+  [jwtCheck, authorize],
+  UpdateInstallationHandler,
+);
 app.delete(
   '/installations/:installationId',
   [jwtCheck, authorize],
   DeleteInstallationHandler,
 );
+app.put('/account', [jwtCheck, authorize], UpdateAccountHandler);
+app.delete('/account', [jwtCheck, authorize], DeleteAccountHandler);
 app.get('/observations', [jwtCheck, authorize], GetObservationsHandler);
 app.post('/observations', authorize, PostObservationsHandler);
 

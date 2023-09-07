@@ -23,7 +23,7 @@ async function checkInstallation(userId, installationId) {
   return response.Items && response.Items.length > 0;
 }
 
-async function updateInstallation(userId, installationId, dangers) {
+async function updateInstallationAgentData(userId, installationId, dangers) {
   try {
     const installationParams = {
       TableName: process.env.INSTALLATION_TABLE,
@@ -36,12 +36,39 @@ async function updateInstallation(userId, installationId, dangers) {
       ExpressionAttributeNames: {
         '#issues': 'issues',
         '#lastAgentConnection': 'last_agent_connection',
-        // Healthy is now calculated based on pings
-        //'#healthy': 'healthy',
       },
       ExpressionAttributeValues: {
         ':dangers': dangers,
         ':lastAgentConnection': new Date().toISOString(),
+      },
+    };
+
+    await dynamoDbClient.send(new UpdateCommand(installationParams));
+  } catch (error) {
+    throw new Error('Failed to update installation: ' + error.message);
+  }
+}
+
+async function updateInstallation(userId, installationId, name, instance) {
+  try {
+    const installationParams = {
+      TableName: process.env.INSTALLATION_TABLE,
+      Key: {
+        userId: userId,
+        id: installationId,
+      },
+      UpdateExpression:
+        'SET #name = :name, #urls.#instance = :instance',
+      ExpressionAttributeNames: {
+        '#name': 'name',
+        '#urls': 'urls',
+        '#instance': 'instance',
+        // Healthy is now calculated based on pings
+        //'#healthy': 'healthy',
+      },
+      ExpressionAttributeValues: {
+        ':name': name,
+        ':instance': instance,
         //':healthy': healthy,
       },
     };
@@ -57,8 +84,8 @@ async function deleteInstallation(userId, installationId) {
     const params = {
       TableName: process.env.INSTALLATION_TABLE,
       Key: {
-        'userId': { S: userId },
-        'id': { S: installationId },
+        userId: { S: userId },
+        id: { S: installationId },
       },
     };
 
@@ -108,4 +135,10 @@ async function createInstallation(userId, name, instance = '', secret) {
   return installation;
 }
 
-module.exports = { checkInstallation, updateInstallation, createInstallation, deleteInstallation };
+module.exports = {
+  checkInstallation,
+  updateInstallationAgentData,
+  updateInstallation,
+  createInstallation,
+  deleteInstallation,
+};

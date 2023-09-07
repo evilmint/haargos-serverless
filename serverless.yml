@@ -117,20 +117,11 @@ resources:
             AttributeType: S
           - AttributeName: secret
             AttributeType: S
-          - AttributeName: email
-            AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
           - AttributeName: secret
             KeyType: RANGE
-        GlobalSecondaryIndexes:
-          - IndexName: email-index
-            KeySchema:
-              - AttributeName: email
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.userTableName}
 

@@ -50,6 +50,10 @@ const authorize = async (req, res, next) => {
       return res.status(403).json({ error: 'Invalid authentication token.' });
     }
 
+    if (!req.user.active) {
+      return res.status(403).json({ error: 'Invalid authentication token.' });
+    }
+
     req.IN_DEV_STAGE = process.env.SLS_STAGE === 'dev';
 
     next(); // Proceed to the next middleware or the Lambda handler

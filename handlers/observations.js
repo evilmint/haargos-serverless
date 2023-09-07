@@ -5,7 +5,7 @@ const dynamoDbClient = require('../dependencies/dynamodb');
 const { getObservations } = require('../services/observation-service');
 const {
   checkInstallation,
-  updateInstallation,
+  updateInstallationAgentData,
 } = require('../services/installation-service');
 
 async function GetObservationsHandler(req, res) {
@@ -65,7 +65,7 @@ async function PostObservationsHandler(req, res) {
 
     try {
       await dynamoDbClient.send(new PutCommand(params));
-      await updateInstallation(userId, requestData.installation_id, requestData.dangers);
+      await updateInstallationAgentData(userId, requestData.installation_id, requestData.dangers);
 
       res.json({ status: 200 });
     } catch (error) {
