@@ -4,7 +4,10 @@ import { v4 } from 'uuid';
 import { validate } from '../lib/yup/observation-schema';
 import { dynamoDbClient } from '../dependencies/dynamodb';
 import { getObservations } from '../services/observation-service';
-import { checkInstallation, updateInstallationAgentData } from '../services/installation-service';
+import {
+  checkInstallation,
+  updateInstallationAgentData,
+} from '../services/installation-service';
 
 async function GetObservationsHandler(req, res) {
   try {

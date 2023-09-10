@@ -1,10 +1,10 @@
 import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { PutItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoDbClient } from '../dependencies/dynamodb.js';
-import { encrypt } from '../lib/crypto';
+import { encrypt } from '../lib/crypto.js';
 import { v4 } from 'uuid';
 
-async function checkInstallation(userId, installationId) {
+async function checkInstallation(userId: string, installationId: string) {
   const params = {
     TableName: process.env.INSTALLATION_TABLE,
     KeyConditionExpression: '#userId = :userId AND #installationId = :installationId',
@@ -23,7 +23,11 @@ async function checkInstallation(userId, installationId) {
   return response.Items && response.Items.length > 0;
 }
 
-async function updateInstallationAgentData(userId, installationId, dangers) {
+async function updateInstallationAgentData(
+  userId: string,
+  installationId: string,
+  dangers: string[],
+) {
   try {
     const installationParams = {
       TableName: process.env.INSTALLATION_TABLE,
@@ -49,7 +53,12 @@ async function updateInstallationAgentData(userId, installationId, dangers) {
   }
 }
 
-async function updateInstallation(userId, installationId, name, instance) {
+async function updateInstallation(
+  userId: string,
+  installationId: string,
+  name: string,
+  instance: string,
+) {
   try {
     const installationParams = {
       TableName: process.env.INSTALLATION_TABLE,
@@ -57,8 +66,7 @@ async function updateInstallation(userId, installationId, name, instance) {
         userId: userId,
         id: installationId,
       },
-      UpdateExpression:
-        'SET #name = :name, #urls.#instance = :instance',
+      UpdateExpression: 'SET #name = :name, #urls.#instance = :instance',
       ExpressionAttributeNames: {
         '#name': 'name',
         '#urls': 'urls',
@@ -79,7 +87,7 @@ async function updateInstallation(userId, installationId, name, instance) {
   }
 }
 
-async function deleteInstallation(userId, installationId) {
+async function deleteInstallation(userId: string, installationId: string) {
   try {
     const params = {
       TableName: process.env.INSTALLATION_TABLE,
@@ -95,7 +103,12 @@ async function deleteInstallation(userId, installationId) {
   }
 }
 
-async function createInstallation(userId, name, instance = '', secret) {
+async function createInstallation(
+  userId: string,
+  name: string,
+  instance: string = '',
+  secret: string,
+) {
   const id = v4();
   const data = {
     secret: secret,

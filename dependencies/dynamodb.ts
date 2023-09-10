@@ -1,8 +1,8 @@
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
-let dynamoDbClientInstance;
+let dynamoDbClientInstance: DynamoDBClient;
 
-function getDynamoDbClient() {
+function getDynamoDbClient(): DynamoDBClient {
   if (!dynamoDbClientInstance) {
     dynamoDbClientInstance = new DynamoDBClient();
   }

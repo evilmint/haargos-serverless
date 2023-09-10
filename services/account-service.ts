@@ -1,7 +1,7 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { dynamoDbClient } from '../dependencies/dynamodb.js';
+import { dynamoDbClient } from '../dependencies/dynamodb';
 
-async function deleteAccount(userId, secret) {
+async function deleteAccount(userId: string, secret: string) {
   try {
     const userPrimaryKey = {
       userId: userId,
@@ -31,7 +31,12 @@ async function deleteAccount(userId, secret) {
   }
 }
 
-async function updateAccount(userId, secret, email, fullName) {
+async function updateAccount(
+  userId: string,
+  secret: string,
+  email: string,
+  fullName: string,
+) {
   try {
     const userPrimaryKey = {
       userId: userId,

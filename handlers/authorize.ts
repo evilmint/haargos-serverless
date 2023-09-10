@@ -3,11 +3,13 @@ import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../dependencies/dynamodb';
 import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
+import { NextFunction, Response } from 'express';
+import { BaseRequest } from '../lib/base-request';
 
-const authorize = async (req, res, next) => {
+const authorize = async (req: BaseRequest, res: Response, next: NextFunction) => {
   try {
     const agentToken = req.headers['x-agent-token'];
-    var response;
+    var response: any;
 
     if (agentToken) {
       const decryptedData = decrypt(agentToken);
