@@ -1,5 +1,5 @@
 const { QueryCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
-const dynamoDbClient = require('../dependencies/dynamodb.js');
+const { dynamoDbClient } = require('../dependencies/dynamodb.js');
 
 async function getObservations(userId, installationId, limit) {
   const params = {

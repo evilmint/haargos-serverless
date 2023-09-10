@@ -1,13 +1,10 @@
-const { PutCommand } = require('@aws-sdk/lib-dynamodb');
-const { BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb');
-const uuid = require('uuid');
-const observationSchema = require('../lib/yup/observation-schema');
-const dynamoDbClient = require('../dependencies/dynamodb');
-const { getObservations } = require('../services/observation-service');
-const {
-  checkInstallation,
-  updateInstallationAgentData,
-} = require('../services/installation-service');
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
+import { v4 } from 'uuid';
+import { validate } from '../lib/yup/observation-schema';
+import { dynamoDbClient } from '../dependencies/dynamodb';
+import { getObservations } from '../services/observation-service';
+import { checkInstallation, updateInstallationAgentData } from '../services/installation-service';
 
 async function GetObservationsHandler(req, res) {
   try {
@@ -60,7 +57,7 @@ async function PostObservationsHandler(req, res) {
     }
 
     try {
-      await observationSchema.validate(req.body, { abortEarly: true });
+      await validate(req.body, { abortEarly: true });
     } catch {
       if (req.IN_DEV_STAGE) {
         return res.status(400).json({ error: validationErrors });
@@ -74,7 +71,7 @@ async function PostObservationsHandler(req, res) {
 
     const params = {
       TableName: process.env.OBSERVATION_TABLE,
-      Item: { id: uuid.v4(), ...requestData },
+      Item: { id: v4(), ...requestData },
     };
 
     try {
@@ -189,4 +186,4 @@ function createDangers(environment, logs) {
   return dangers;
 }
 
-module.exports = { GetObservationsHandler, PostObservationsHandler };
+export { GetObservationsHandler, PostObservationsHandler };

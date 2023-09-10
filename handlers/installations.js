@@ -1,6 +1,6 @@
 const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const { PutItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
-const dynamoDbClient = require('../dependencies/dynamodb');
+const { dynamoDbClient } = require('../dependencies/dynamodb');
 const { unmarshall } = require('@aws-sdk/util-dynamodb');
 const {
   createInstallation,

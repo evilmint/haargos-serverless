@@ -1,8 +1,8 @@
-const { GetItemCommand } = require('@aws-sdk/client-dynamodb');
-const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
-const dynamoDbClient = require('../dependencies/dynamodb');
-const { decrypt } = require('../lib/crypto');
-const { decodeAuth0JWT } = require('../lib/decode-auth0-jwt');
+import { GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { dynamoDbClient } from '../dependencies/dynamodb';
+import { decrypt } from '../lib/crypto';
+import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 
 const authorize = async (req, res, next) => {
   try {
@@ -63,4 +63,4 @@ const authorize = async (req, res, next) => {
   }
 };
 
-module.exports = authorize;
+export { authorize };

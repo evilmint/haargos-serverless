@@ -1,5 +1,5 @@
 const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-const dynamoDbClient = require('../dependencies/dynamodb.js');
+const { dynamoDbClient } = require('../dependencies/dynamodb.js');
 
 async function deleteAccount(userId, secret) {
   try {

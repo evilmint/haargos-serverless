@@ -1,6 +1,6 @@
 const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
-const dynamoDbClient = require('../dependencies/dynamodb.js');
+const { dynamoDbClient } = require('../dependencies/dynamodb.js');
 const { encrypt } = require('../lib/crypto');
 const uuid = require('uuid');
 

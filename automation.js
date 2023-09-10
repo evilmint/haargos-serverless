@@ -4,7 +4,7 @@ const {
   UpdateItemCommand,
   TransactWriteItemsCommand,
 } = require('@aws-sdk/client-dynamodb');
-const dynamoDbClient = require('./dependencies/dynamodb.js');
+const { dynamoDbClient } = require('./dependencies/dynamodb.js');
 
 module.exports.handler = async event => {
   try {

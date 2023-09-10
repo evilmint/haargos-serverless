@@ -3,7 +3,7 @@ const serverless = require('serverless-http');
 const cors = require('cors');
 const { UsersMeHandler } = require('./handlers/users');
 const notFoundHandler = require('./handlers/not-found');
-const authorize = require('./handlers/authorize');
+const { authorize } = require('./handlers/authorize');
 const { auth } = require('express-oauth2-jwt-bearer');
 const { compressForAWSLambda } = require('./lib/compression');
 
