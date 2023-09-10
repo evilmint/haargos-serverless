@@ -1,5 +1,5 @@
-const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-const { dynamoDbClient } = require('../dependencies/dynamodb.js');
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { dynamoDbClient } from '../dependencies/dynamodb.js';
 
 async function deleteAccount(userId, secret) {
   try {
@@ -58,7 +58,4 @@ async function updateAccount(userId, secret, email, fullName) {
   }
 }
 
-module.exports = {
-  updateAccount,
-  deleteAccount,
-};
+export { updateAccount, deleteAccount };

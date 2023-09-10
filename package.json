@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.119",
+    "@types/cors": "^2.8.14",
     "@types/node": "^20.5.9",
     "@types/uuid": "^9.0.3",
     "serverless-content-encoding": "^1.1.0",

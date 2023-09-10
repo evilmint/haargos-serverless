@@ -1,23 +1,15 @@
-import express = require('express');
-const serverless = require('serverless-http');
-const cors = require('cors');
-const { UsersMeHandler } = require('./handlers/users');
-const { notFoundHandler } = require('./handlers/not-found');
-const { authorize } = require('./handlers/authorize');
-const { auth } = require('express-oauth2-jwt-bearer');
-const { compressForAWSLambda } = require('./lib/compression');
+import express from 'express';
+import serverless from 'serverless-http';
+import cors from 'cors';
+import { UsersMeHandler } from './handlers/users';
+import { notFoundHandler } from './handlers/not-found';
+import { authorize } from './handlers/authorize';
+import { auth } from 'express-oauth2-jwt-bearer';
+import { compressForAWSLambda } from './lib/compression';
 
-const {
-  GetInstallationsHandler,
-  CreateInstallationHandler,
-  DeleteInstallationHandler,
-  UpdateInstallationHandler,
-} = require('./handlers/installations');
+import { GetInstallationsHandler, CreateInstallationHandler, DeleteInstallationHandler, UpdateInstallationHandler } from './handlers/installations';
 import { DeleteAccountHandler, UpdateAccountHandler } from './handlers/account';
-const {
-  PostObservationsHandler,
-  GetObservationsHandler,
-} = require('./handlers/observations');
+import { PostObservationsHandler, GetObservationsHandler } from './handlers/observations';
 
 const app = express();
 
@@ -50,4 +42,4 @@ app.post('/observations', authorize, PostObservationsHandler);
 
 app.use(notFoundHandler);
 
-module.exports.handler = serverless(app);
+export const handler = serverless(app);

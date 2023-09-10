@@ -1,24 +1,10 @@
-const axios = require('axios');
-const {
+import axios from 'axios';
+import {
   ScanCommand,
   UpdateItemCommand,
   TransactWriteItemsCommand,
-} = require('@aws-sdk/client-dynamodb');
-const { dynamoDbClient } = require('./dependencies/dynamodb.js');
-
-module.exports.handler = async event => {
-  try {
-    await retrieveLatestHAVersion();
-
-    return await updateInstallationHealthyStatus();
-  } catch (error) {
-    console.error('An error occurred:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify('An error occurred while processing your request.'),
-    };
-  }
-};
+} from '@aws-sdk/client-dynamodb';
+import { dynamoDbClient } from './dependencies/dynamodb.js';
 
 async function retrieveLatestHAVersion() {
   const response = await axios.get(
@@ -132,3 +118,17 @@ async function updateInstallationHealthyStatus() {
     body: JSON.stringify({ message: 'Monitoring completed.' }),
   };
 }
+
+export const handler = async _event => {
+  try {
+    await retrieveLatestHAVersion();
+
+    return await updateInstallationHealthyStatus();
+  } catch (error) {
+    console.error('An error occurred:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify('An error occurred while processing your request.'),
+    };
+  }
+};

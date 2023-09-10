@@ -1,5 +1,5 @@
-const { QueryCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
-const { dynamoDbClient } = require('../dependencies/dynamodb.js');
+import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { dynamoDbClient } from '../dependencies/dynamodb.js';
 
 async function getObservations(userId, installationId, limit) {
   const params = {
@@ -33,4 +33,4 @@ async function putObservation(item) {
   await dynamoDbClient.send(new PutCommand(params));
 }
 
-module.exports = { getObservations, putObservation };
+export { getObservations, putObservation };

@@ -1,8 +1,8 @@
-const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-const { PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
-const { dynamoDbClient } = require('../dependencies/dynamodb.js');
-const { encrypt } = require('../lib/crypto');
-const uuid = require('uuid');
+import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { PutItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
+import { dynamoDbClient } from '../dependencies/dynamodb.js';
+import { encrypt } from '../lib/crypto';
+import { v4 } from 'uuid';
 
 async function checkInstallation(userId, installationId) {
   const params = {
@@ -96,7 +96,7 @@ async function deleteInstallation(userId, installationId) {
 }
 
 async function createInstallation(userId, name, instance = '', secret) {
-  const id = uuid.v4();
+  const id = v4();
   const data = {
     secret: secret,
     installation_id: id,
@@ -135,7 +135,7 @@ async function createInstallation(userId, name, instance = '', secret) {
   return installation;
 }
 
-module.exports = {
+export {
   checkInstallation,
   updateInstallationAgentData,
   updateInstallation,
