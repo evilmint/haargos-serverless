@@ -1,7 +1,21 @@
 const userSchema = require('../lib/yup/user-schema');
 const { deleteAccount, updateAccount } = require('../services/account-service');
+import { Request, Response } from 'express';
 
-const DeleteAccountHandler = async (req, res) => {
+interface User {
+  userId: string;
+  secret: string;
+}
+
+interface TypedRequestBody<T> extends Request {
+  body: T;
+  user: User;
+}
+
+export const DeleteAccountHandler = async (
+  req: TypedRequestBody<{ user: { userId: string } }>,
+  res: Response,
+) => {
   try {
     await deleteAccount(req.user.userId, req.user.secret);
     return res.status(200).json({ success: true });
@@ -11,10 +25,13 @@ const DeleteAccountHandler = async (req, res) => {
   }
 };
 
-const UpdateAccountHandler = async (req, res) => {
+export const UpdateAccountHandler = async (
+  req: TypedRequestBody<{ email: string; full_name: string }>,
+  res: Response,
+) => {
   try {
     await userSchema.validate(req.body, { abortEarly: true });
-  
+
     const { email, full_name: fullName } = req.body;
 
     await updateAccount(req.user.userId, req.user.secret, email, fullName);
@@ -23,9 +40,4 @@ const UpdateAccountHandler = async (req, res) => {
     console.error('An error occurred:', error);
     return res.status(500).json({ error: error });
   }
-};
-
-module.exports = {
-  UpdateAccountHandler,
-  DeleteAccountHandler,
 };

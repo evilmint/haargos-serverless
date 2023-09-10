@@ -21,7 +21,11 @@
     "yup": "^1.2.0"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^20.5.9",
     "serverless-content-encoding": "^1.1.0",
-    "serverless-domain-manager": "^7.1.0"
+    "serverless-domain-manager": "^7.1.0",
+    "serverless-plugin-typescript": "^2.1.5",
+    "typescript": "^5.2.2"
   }
 }

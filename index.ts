@@ -1,4 +1,4 @@
-const express = require('express');
+import express = require('express');
 const serverless = require('serverless-http');
 const cors = require('cors');
 const { UsersMeHandler } = require('./handlers/users');
@@ -13,7 +13,7 @@ const {
   DeleteInstallationHandler,
   UpdateInstallationHandler,
 } = require('./handlers/installations');
-const { DeleteAccountHandler, UpdateAccountHandler } = require('./handlers/account');
+import { DeleteAccountHandler, UpdateAccountHandler } from './handlers/account';
 const {
   PostObservationsHandler,
   GetObservationsHandler,

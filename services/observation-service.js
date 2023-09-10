@@ -1,20 +1,25 @@
 const { QueryCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
 const dynamoDbClient = require('../dependencies/dynamodb.js');
 
-async function getObservations(userId, installationId) {
+async function getObservations(userId, installationId, limit) {
   const params = {
     TableName: process.env.OBSERVATION_TABLE,
-    KeyConditionExpression: '#userId = :userId AND #installationId = :installationId',
+    KeyConditionExpression: '#userId = :userId AND #installation_id = :installationId',
+    IndexName: 'userId-installation_id-index',
     ExpressionAttributeNames: {
       '#userId': 'userId',
-      '#installationId': 'installation_id',
+      '#installation_id': 'installation_id',
     },
     ExpressionAttributeValues: {
       ':userId': userId,
       ':installationId': installationId,
     },
-    Limit: 3,
+    ScanIndexForward: false, // This orders by timestamp descending
   };
+
+  if (typeof limit !== 'undefined' && limit != null) {
+    params.Limit = limit;
+  }
 
   return await dynamoDbClient.send(new QueryCommand(params));
 }

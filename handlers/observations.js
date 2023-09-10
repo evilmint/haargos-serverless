@@ -1,4 +1,5 @@
 const { PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb');
 const uuid = require('uuid');
 const observationSchema = require('../lib/yup/observation-schema');
 const dynamoDbClient = require('../dependencies/dynamodb');
@@ -19,12 +20,25 @@ async function GetObservationsHandler(req, res) {
       return res.status(400).json({ error: 'Invalid installation.' });
     }
 
-    const response = await getObservations(req.user.userId, req.query.installation_id);
+    const fetchLimit = Number(process.env.RETURN_OBSERVATION_COUNT);
+    const response = await getObservations(
+      req.user.userId,
+      req.query.installation_id,
+      fetchLimit,
+    );
 
     return res.status(200).json({ body: { items: response.Items } });
   } catch (error) {
     return res.status(500).json({ error: error });
   }
+}
+
+function chunkArray(array, chunkSize) {
+  let chunks = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
 }
 
 async function PostObservationsHandler(req, res) {
@@ -65,9 +79,53 @@ async function PostObservationsHandler(req, res) {
 
     try {
       await dynamoDbClient.send(new PutCommand(params));
-      await updateInstallationAgentData(userId, requestData.installation_id, requestData.dangers);
 
-      res.json({ status: 200 });
+      // Query for all the observations
+      const allObservations = await getObservations(
+        userId,
+        req.agentToken['installation_id'],
+        1000,
+      );
+      const sortedObservations = allObservations.Items.sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+
+      const keepObservationCount = process.env.MAX_OBSERVATIONS_KEPT;
+      // Check if we need to delete any old observations
+      if (sortedObservations.length > keepObservationCount) {
+        const itemsToDelete = sortedObservations
+          .slice(keepObservationCount)
+          .map(observation => {
+            return {
+              DeleteRequest: {
+                Key: {
+                  userId: { S: observation.userId },
+                  timestamp: { S: observation.timestamp },
+                },
+              },
+            };
+          });
+
+        const maxBatchItemSize = 25; // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
+        const chunksOfItemsToDelete = chunkArray(itemsToDelete, maxBatchItemSize);
+        for (const chunk of chunksOfItemsToDelete) {
+          const batchDeleteParams = {
+            RequestItems: {
+              [process.env.OBSERVATION_TABLE]: chunk,
+            },
+          };
+
+          await dynamoDbClient.send(new BatchWriteItemCommand(batchDeleteParams));
+        }
+      }
+
+      await updateInstallationAgentData(
+        userId,
+        requestData.installation_id,
+        requestData.dangers,
+      );
+
+      return res.json({ status: 200 });
     } catch (error) {
       console.log(error);
       return res.status(500).json({ error: error });

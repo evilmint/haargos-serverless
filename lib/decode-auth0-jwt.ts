@@ -1,4 +1,4 @@
-const jwt_decode = require('jwt-decode');
+import jwt_decode from 'jwt-decode';
 
 /* 
 {
@@ -14,8 +14,8 @@ const jwt_decode = require('jwt-decode');
   "scope": "openid profile email"
 }
 */
-function decodeAuth0JWT(jwt) {
-  const decoded = jwt_decode(jwt);
-  return { subIdentifier: decoded.sub.split('|')[1] };
+function decodeAuth0JWT(jwt: string) {
+  const { sub }: { sub: string } = jwt_decode(jwt);
+  return { subIdentifier: sub.split('|')[1] };
 }
 module.exports = { decodeAuth0JWT };

@@ -8,8 +8,7 @@ const dynamoDbClient = require('./dependencies/dynamodb.js');
 
 module.exports.handler = async event => {
   try {
-    // Scrape the latest release from GitHub
-    const latestRelease = await retrieveLatestHAVersion();
+    await retrieveLatestHAVersion();
 
     return await updateInstallationHealthyStatus();
   } catch (error) {

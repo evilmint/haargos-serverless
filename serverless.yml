@@ -3,7 +3,7 @@ frameworkVersion: '3'
 
 plugins:
   - serverless-domain-manager
-
+  - serverless-plugin-typescript
 custom:
   customDomain:
     domainName: api.haargos.smartrezydencja.pl
@@ -13,7 +13,7 @@ custom:
     endpointType: regional
     apiType: http
   userTableName: 'user-table-${sls:stage}'
-  observationDataTableName: 'observation-table-${sls:stage}'
+  observationDataTableName: 'observations-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
   crypto:
@@ -23,6 +23,8 @@ custom:
     audience: 'https://api.haargos.smartrezydencja.pl'
     domain: 'dev-ofc2nc2a0lc4ncig.eu.auth0.com'
     clientId: '3EGUK8VIxgWNygQ1My32IIMeFz2KFeXm'
+  maxObservationsKept: 10
+  returnObservationCount: 10
 
 provider:
   name: aws
@@ -55,6 +57,7 @@ provider:
             - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*
 
         - Effect: Allow
           Action:
@@ -63,6 +66,7 @@ provider:
             - dynamodb:GetItem
             - dynamodb:PutItem
             # - dynamodb:UpdateItem
+            - dynamodb:BatchWriteItem
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [ObservationTable, Arn]
@@ -78,21 +82,25 @@ provider:
           Resource:
             - Fn::GetAtt: [InstallationTable, Arn]
   environment:
-    # TABLES
+    # Tables
     USERS_TABLE: ${self:custom.userTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     SLS_STAGE: ${opt:stage, 'dev'}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
 
-    # AUTH0
+    # Auth0
     AUTH0_ISSUER_BASE_URL: ${self:custom.auth0.issuerBaseUrl}
     AUTH0_AUDIENCE: ${self:custom.auth0.audience}
     AUTH0_DOMAIN: ${self:custom.auth0.domain}
     AUTH0_CLIENT_ID: ${self:custom.auth0.clientId}
 
-    # CRYPTO
+    # Crypto
     CRYPTO_KEY: ${self:custom.crypto.key}
+
+    # Settings
+    MAX_OBSERVATIONS_KEPT: ${self:custom.maxObservationsKept}
+    RETURN_OBSERVATION_COUNT: ${self:custom.returnObservationCount}
 
 functions:
   api:
@@ -130,15 +138,32 @@ resources:
       Properties:
         TableName: ${self:custom.observationDataTableName}
         AttributeDefinitions:
-          - AttributeName: installation_id
+          - AttributeName: timestamp
             AttributeType: S
           - AttributeName: userId
+            AttributeType: S
+          - AttributeName: installation_id
             AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
-          - AttributeName: installation_id
+          - AttributeName: timestamp
             KeyType: RANGE
+        GlobalSecondaryIndexes:
+        - IndexName: userId-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: userId-installation_id-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: installation_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
     InstallationTable:
