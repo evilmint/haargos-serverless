@@ -1,13 +1,9 @@
-const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
-const { PutItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
-const { dynamoDbClient } = require('../dependencies/dynamodb');
-const { unmarshall } = require('@aws-sdk/util-dynamodb');
-const {
-  createInstallation,
-  deleteInstallation,
-  updateInstallation
-} = require('../services/installation-service');
-const installationSchema = require('../lib/yup/installation-schema');
+import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { dynamoDbClient } from '../dependencies/dynamodb';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { createInstallation, deleteInstallation, updateInstallation } from '../services/installation-service';
+import { validate } from '../lib/yup/installation-schema';
 
 const getLatestRelease = async () => {
   try {
@@ -70,7 +66,7 @@ const CreateInstallationHandler = async (req, res) => {
       instance = '';
     }
 
-    await installationSchema.validate(req.body, { abortEarly: true });
+    await validate(req.body, { abortEarly: true });
 
     const installation = await createInstallation(
       req.user.userId,
@@ -98,7 +94,7 @@ const DeleteInstallationHandler = async (req, res) => {
 
 const UpdateInstallationHandler = async (req, res) => {
   try {
-    await installationSchema.validate(req.body, { abortEarly: true });
+    await validate(req.body, { abortEarly: true });
 
     let { name, instance } = req.body;
 
@@ -110,7 +106,7 @@ const UpdateInstallationHandler = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   CreateInstallationHandler,
   GetInstallationsHandler,
   DeleteInstallationHandler,

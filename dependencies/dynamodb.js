@@ -11,4 +11,4 @@ function getDynamoDbClient() {
 
 let dynamoDbClient = getDynamoDbClient();
 
-module.exports = { dynamoDbClient };
+export { dynamoDbClient };
