@@ -150,20 +150,20 @@ resources:
           - AttributeName: timestamp
             KeyType: RANGE
         GlobalSecondaryIndexes:
-        - IndexName: userId-index
-          KeySchema:
-            - AttributeName: userId
-              KeyType: HASH
-          Projection:
-            ProjectionType: ALL
-        - IndexName: userId-installation_id-index
-          KeySchema:
-            - AttributeName: userId
-              KeyType: HASH
-            - AttributeName: installation_id
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
+          - IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: userId-installation_id-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: installation_id
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
     InstallationTable:

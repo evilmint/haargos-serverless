@@ -7,7 +7,12 @@ import { authorize } from './handlers/authorize';
 import { auth } from 'express-oauth2-jwt-bearer';
 import { compressForAWSLambda } from './lib/compression';
 
-import { GetInstallationsHandler, CreateInstallationHandler, DeleteInstallationHandler, UpdateInstallationHandler } from './handlers/installations';
+import {
+  GetInstallationsHandler,
+  CreateInstallationHandler,
+  DeleteInstallationHandler,
+  UpdateInstallationHandler,
+} from './handlers/installations';
 import { DeleteAccountHandler, UpdateAccountHandler } from './handlers/account';
 import { PostObservationsHandler, GetObservationsHandler } from './handlers/observations';
 

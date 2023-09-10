@@ -2,7 +2,11 @@ import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoDbClient } from '../dependencies/dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
-import { createInstallation, deleteInstallation, updateInstallation } from '../services/installation-service';
+import {
+  createInstallation,
+  deleteInstallation,
+  updateInstallation,
+} from '../services/installation-service';
 import { validate } from '../lib/yup/installation-schema';
 
 const getLatestRelease = async () => {
