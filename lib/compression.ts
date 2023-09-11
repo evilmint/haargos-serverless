@@ -1,8 +1,17 @@
+import { NextFunction, Request, Response } from 'express';
 import { brotliCompressSync, gzipSync, deflateSync } from 'zlib';
 
-function compressForAWSLambda(request, response, next) {
+interface Base64Response extends Response {
+  isBase64Encoded: boolean;
+}
+
+function compressForAWSLambda(
+  request: Request,
+  response: Base64Response,
+  next: NextFunction,
+) {
   let oldSend = response.send;
-  response.send = function (sdata) {
+  response.send = function (data) {
     const acceptEncodingHeader = request.header('Accept-Encoding');
 
     const encodings = new Set();
@@ -11,26 +20,26 @@ function compressForAWSLambda(request, response, next) {
         encodings.add(encoding.toLowerCase().trim());
       });
     }
-    var data = sdata;
+    var alteredData = data;
 
-    if (data) {
+    if (alteredData) {
       if (encodings.has('br')) {
         response.set('content-encoding', 'br');
         response.isBase64Encoded = true;
-        data = brotliCompressSync(data);
+        alteredData = brotliCompressSync(alteredData);
       } else if (encodings.has('gzip')) {
         response.set('content-encoding', 'gzip');
         response.isBase64Encoded = true;
-        data = gzipSync(data);
+        alteredData = gzipSync(alteredData);
       } else if (encodings.has('deflate')) {
         response.set('content-encoding', 'deflate');
         response.isBase64Encoded = true;
-        data = deflateSync(data);
+        alteredData = deflateSync(alteredData);
       }
     }
 
     response.send = oldSend;
-    return response.send(data);
+    return response.send(alteredData);
   };
   next();
 }

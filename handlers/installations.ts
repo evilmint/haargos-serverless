@@ -7,7 +7,9 @@ import {
   deleteInstallation,
   updateInstallation,
 } from '../services/installation-service';
-import { validate } from '../lib/yup/installation-schema';
+import installationSchema from '../lib/yup/installation-schema';
+import { NextFunction, Response } from 'express';
+import { BaseRequest } from '../lib/base-request';
 
 const getLatestRelease = async () => {
   try {
@@ -34,7 +36,11 @@ const getLatestRelease = async () => {
   }
 };
 
-async function GetInstallationsHandler(req, res) {
+async function GetInstallationsHandler(
+  req: BaseRequest,
+  res: Response,
+  _next: NextFunction,
+) {
   try {
     const params = {
       TableName: process.env.INSTALLATION_TABLE,
@@ -47,7 +53,7 @@ async function GetInstallationsHandler(req, res) {
       },
     };
 
-    const response = await dynamoDbClient.send(new QueryCommand(params));
+    const response: any = await dynamoDbClient.send(new QueryCommand(params));
     const latestHaRelease = await getLatestRelease();
 
     return res
@@ -58,7 +64,11 @@ async function GetInstallationsHandler(req, res) {
   }
 }
 
-const CreateInstallationHandler = async (req, res) => {
+const CreateInstallationHandler = async (
+  req: BaseRequest,
+  res: Response,
+  _next: NextFunction,
+) => {
   try {
     let { instance, name } = req.body;
 
@@ -70,7 +80,7 @@ const CreateInstallationHandler = async (req, res) => {
       instance = '';
     }
 
-    await validate(req.body, { abortEarly: true });
+    await installationSchema.validate(req.body, { abortEarly: true });
 
     const installation = await createInstallation(
       req.user.userId,
@@ -86,7 +96,11 @@ const CreateInstallationHandler = async (req, res) => {
   }
 };
 
-const DeleteInstallationHandler = async (req, res) => {
+const DeleteInstallationHandler = async (
+  req: BaseRequest,
+  res: Response,
+  _next: NextFunction,
+) => {
   try {
     await deleteInstallation(req.user.userId, req.params.installationId);
     return res.status(200).json({ success: true });
@@ -96,9 +110,13 @@ const DeleteInstallationHandler = async (req, res) => {
   }
 };
 
-const UpdateInstallationHandler = async (req, res) => {
+const UpdateInstallationHandler = async (
+  req: BaseRequest,
+  res: Response,
+  _next: NextFunction,
+) => {
   try {
-    await validate(req.body, { abortEarly: true });
+    await installationSchema.validate(req.body, { abortEarly: true });
 
     let { name, instance } = req.body;
 

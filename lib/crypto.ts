@@ -5,7 +5,7 @@ const sharedKey = createHash('sha256')
   .digest('base64')
   .slice(0, 32);
 
-function encryptData(data, key) {
+function encryptData(data: any, key: string) {
   const iv = randomBytes(16);
   const cipher = createCipheriv('aes-256-cbc', Buffer.from(key, 'utf-8'), iv);
   let encrypted = cipher.update(JSON.stringify(data));
@@ -14,7 +14,7 @@ function encryptData(data, key) {
   return encryptedData.toString('base64');
 }
 
-function decryptData(data, key) {
+function decryptData(data: any, key: string) {
   const buffer = Buffer.from(data, 'base64');
   const iv = buffer.subarray(0, 16);
   const encryptedData = buffer.subarray(16);
@@ -24,11 +24,11 @@ function decryptData(data, key) {
   return JSON.parse(decrypted.toString());
 }
 
-function decrypt(data) {
+function decrypt(data: any) {
   return decryptData(data, sharedKey);
 }
 
-function encrypt(data) {
+function encrypt(data: any) {
   return encryptData(data, sharedKey);
 }
 

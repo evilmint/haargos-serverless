@@ -27,7 +27,7 @@ async function retrieveLatestHAVersion() {
 
   // Update or insert the record
   const command = new UpdateItemCommand(params);
-  const result = await dynamoDbClient.send(command);
+  await dynamoDbClient.send(command);
   return latestRelease;
 }
 
@@ -56,15 +56,20 @@ const checkInstanceHealth = async item => {
   }
 };
 
-const chunkArray = (array, chunkSize) => {
-  const chunks = [];
+function chunkArray<Type>(array: Type[], chunkSize: number): Type[][] {
+  const chunks: Type[][] = [];
   for (let i = 0; i < array.length; i += chunkSize) {
-    chunks.push(array.slice(i, i + chunkSize));
+    const slice = array.slice(i, i + chunkSize);
+    chunks.push(slice);
   }
   return chunks;
-};
+}
 
-const buildUpdateAction = (id, userId, healthy) => {
+const buildUpdateAction = (
+  id: string,
+  userId: string,
+  healthy: { value: boolean; last_updated: string },
+) => {
   return {
     Update: {
       TableName: process.env.INSTALLATION_TABLE,
@@ -89,10 +94,10 @@ async function updateInstallationHealthyStatus() {
 
   const scanResult = await dynamoDbClient.send(new ScanCommand(scanParams));
 
-  const instances = scanResult.Items.map(item => ({
+  const instances = (scanResult.Items ?? []).map(item => ({
     id: item.id.S,
     userId: item.userId.S,
-    instance: item.urls.M.instance.S,
+    instance: item.urls.M?.instance.S ?? '',
   }));
 
   const chunkSize = 10;
@@ -119,7 +124,7 @@ async function updateInstallationHealthyStatus() {
   };
 }
 
-export const handler = async _event => {
+export const handler = async (_event: any) => {
   try {
     await retrieveLatestHAVersion();
 

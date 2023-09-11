@@ -1,4 +1,4 @@
-const userSchema = require('../lib/yup/user-schema');
+import userSchema from '../lib/yup/user-schema';
 const { deleteAccount, updateAccount } = require('../services/account-service');
 import { Request, Response } from 'express';
 
