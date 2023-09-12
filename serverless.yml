@@ -16,6 +16,7 @@ custom:
   observationDataTableName: 'observations-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
+  dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
   crypto:
     key: '793I4BGlD$czvtCWKBDWKy7Og6GgFl^@'
   auth0:
@@ -81,6 +82,17 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [InstallationTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [DnsVerificationTable, Arn]
   environment:
     # Tables
     USERS_TABLE: ${self:custom.userTableName}
@@ -179,6 +191,22 @@ resources:
           - AttributeName: userId
             KeyType: HASH
           - AttributeName: id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    DnsVerificationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.dnsVerificationTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+          - AttributeName: type
+            AttributeType: S
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+          - AttributeName: type
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
   

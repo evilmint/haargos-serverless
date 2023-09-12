@@ -3,6 +3,7 @@ import { PutItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoDbClient } from '../dependencies/dynamodb.js';
 import { encrypt } from '../lib/crypto.js';
 import { v4 } from 'uuid';
+import { marshall } from '@aws-sdk/util-dynamodb';
 
 async function checkInstallation(userId: string, installationId: string) {
   const params = {
@@ -57,7 +58,7 @@ async function updateInstallation(
   userId: string,
   installationId: string,
   name: string,
-  instance: string,
+  url: string,
 ) {
   try {
     const installationParams = {
@@ -66,18 +67,16 @@ async function updateInstallation(
         userId: userId,
         id: installationId,
       },
-      UpdateExpression: 'SET #name = :name, #urls.#instance = :instance',
+      UpdateExpression: 'SET #name = :name, #urls.#instance.#url = :url',
       ExpressionAttributeNames: {
         '#name': 'name',
         '#urls': 'urls',
+        '#url': 'url',
         '#instance': 'instance',
-        // Healthy is now calculated based on pings
-        //'#healthy': 'healthy',
       },
       ExpressionAttributeValues: {
         ':name': name,
-        ':instance': instance,
-        //':healthy': healthy,
+        ':url': url,
       },
     };
 
@@ -91,10 +90,10 @@ async function deleteInstallation(userId: string, installationId: string) {
   try {
     const params = {
       TableName: process.env.INSTALLATION_TABLE,
-      Key: {
-        userId: { S: userId },
-        id: { S: installationId },
-      },
+      Key: marshall({
+        userId: userId,
+        id: installationId,
+      }),
     };
 
     await dynamoDbClient.send(new DeleteItemCommand(params));
@@ -119,29 +118,26 @@ async function createInstallation(
   const agentToken = encrypt(data);
 
   const installation = {
-    userId: { S: userId },
-    id: { S: id },
-    agent_token: { S: agentToken },
-    healthy: {
-      M: {
-        is_healthy: { BOOL: false },
-        last_updated: { NULL: true },
-      },
-    },
-    issues: { L: [] },
-    last_agent_connection: { NULL: true },
-    name: { S: name },
-    notes: { S: '' },
+    userId: userId,
+    id: id,
+    agent_token: agentToken,
+    issues: [],
+    health_statuses: [],
+    last_agent_connection: null,
+    name: name,
+    notes: '',
+    has_unverified_urls: instance.trim() == '',
     urls: {
-      M: {
-        instance: { S: instance },
+      instance: {
+        url: instance,
+        is_verified: false
       },
     },
   };
 
   const params = {
     TableName: process.env.INSTALLATION_TABLE,
-    Item: installation,
+    Item: marshall(installation),
   };
 
   await dynamoDbClient.send(new PutItemCommand(params));

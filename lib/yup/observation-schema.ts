@@ -28,14 +28,16 @@ const zigbeeSchema = object().shape({
 });
 
 const environmentSchema = object().shape({
-  cpu: object().shape({
+  cpu: object()
+    .shape({
       architecture: string().max(50).required(),
       model_name: string().max(100).required(),
       cpu_mhz: string().max(20).required(),
       load: number().required(),
     })
     .nullable(),
-  memory: object().shape({
+  memory: object()
+    .shape({
       total: number().required(),
       used: number().required(),
       free: number().required(),
@@ -104,4 +106,3 @@ const observationSchema = object().shape({
 });
 
 export { environmentSchema, observationSchema };
-

@@ -11,6 +11,7 @@ import {
 import { BaseRequest } from '../lib/base-request';
 import { NextFunction, Response } from 'express';
 import { InferType } from 'yup';
+import { marshall } from '@aws-sdk/util-dynamodb';
 
 async function GetObservationsHandler(
   req: BaseRequest,
@@ -107,10 +108,10 @@ async function PostObservationsHandler(
           .map(observation => {
             return {
               DeleteRequest: {
-                Key: {
-                  userId: { S: observation.userId },
-                  timestamp: { S: observation.timestamp },
-                },
+                Key: marshall({
+                  userId: observation.userId,
+                  timestamp: observation.timestamp,
+                }),
               },
             };
           });
@@ -138,7 +139,6 @@ async function PostObservationsHandler(
 
       return res.json({ status: 200 });
     } catch (error) {
-      console.log(error);
       return res.status(500).json({ error: error });
     }
   } catch (error) {

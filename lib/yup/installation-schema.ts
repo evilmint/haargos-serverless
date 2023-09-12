@@ -1,8 +1,33 @@
-import { object, string } from 'yup';
+import * as z from 'zod';
+import ipaddr from 'ipaddr.js';
 
-const installationSchema = object().shape({
-  name: string().min(2).max(32).required(),
-  instance: string().max(64),
+const updateInstallationFormSchema = z.object({
+  name: z
+    .string()
+    .min(2, {
+      message: 'Name must be at least 2 characters.',
+    })
+    .max(30, {
+      message: 'Name must not be longer than 32 characters.',
+    }),
+  instance: z.union([
+    z.literal(''),
+    z
+      .string()
+      .trim()
+      .url()
+      .refine(i => {
+        return new URL(i).protocol.toLowerCase() == 'https:';
+      }, 'Only HTTPS URLs are allowed.')
+      .refine(i => {
+        try {
+          const _ = ipaddr.parse(new URL(i).host);
+          return false;
+        } catch {
+          return true;
+        }
+      }, 'IP addresses are not allowed.'),
+  ]),
 });
 
-export default installationSchema;
+export default updateInstallationFormSchema;

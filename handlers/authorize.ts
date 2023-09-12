@@ -5,6 +5,7 @@ import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { NextFunction, Response } from 'express';
 import { BaseRequest } from '../lib/base-request';
+import { marshall } from '@aws-sdk/util-dynamodb';
 
 const authorize = async (req: BaseRequest, res: Response, next: NextFunction) => {
   try {
@@ -19,10 +20,10 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
 
       const params = {
         TableName: process.env.USERS_TABLE,
-        Key: {
-          userId: { S: userId },
-          secret: { S: secret },
-        },
+        Key: marshall({
+          userId:  userId,
+          secret: secret,
+        }),
       };
 
       req.agentToken = decryptedData;
