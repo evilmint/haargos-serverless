@@ -21,11 +21,8 @@ const getLatestRelease = async () => {
       },
     };
 
-    // Get the record
     const command = new GetItemCommand(params);
     const result = await dynamoDbClient.send(command);
-
-    // Extract the latest release version
     const latestRelease = result.Item?.version?.S;
 
     console.log(`Latest release: ${latestRelease ?? 'not found'}`);

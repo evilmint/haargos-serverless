@@ -4,6 +4,8 @@ import {
   UpdateItemCommand,
   TransactWriteItemsCommand,
 } from '@aws-sdk/client-dynamodb';
+import { performance } from 'perf_hooks';
+
 import { dynamoDbClient } from './dependencies/dynamodb.js';
 
 async function retrieveLatestHAVersion() {
@@ -40,16 +42,21 @@ const checkInstanceHealth = async item => {
     };
   }
 
+  let time = performance.now();
+
   try {
     await axios.get(item.instance);
+
     return {
       item,
+      time: (performance.now() - time),
       healthy: { value: true, last_updated: new Date().toISOString() },
       error: null,
     };
   } catch (error) {
     return {
       item,
+      time: (performance.now() - time),
       healthy: { value: false, last_updated: new Date().toISOString() },
       error: error,
     };
@@ -69,7 +76,25 @@ const buildUpdateAction = (
   id: string,
   userId: string,
   healthy: { value: boolean; last_updated: string },
+  timeTaken: number,
+  currentStatuses: any[] = []
 ) => {
+  const healthStatus = {
+    M: {
+      is_up: { BOOL: healthy.value },
+      time: { N: String(timeTaken.toFixed(3)) },
+      timestamp: { S: healthy.last_updated },
+    },
+  };
+
+  // Append the new health status to the current list
+  currentStatuses.push(healthStatus);
+
+  // Ensure there are only up to 10 records, remove the oldest if necessary
+  while (currentStatuses.length > 10) {
+    currentStatuses.shift();
+  }
+
   return {
     Update: {
       TableName: process.env.INSTALLATION_TABLE,
@@ -78,11 +103,12 @@ const buildUpdateAction = (
         userId: { S: userId },
       },
       UpdateExpression:
-        'SET healthy.is_healthy = :is_healthy, healthy.last_updated = :last_updated',
+        'SET healthy.is_healthy = :is_healthy, healthy.last_updated = :last_updated, health_statuses = :new_statuses',
       ExpressionAttributeValues: {
         ':is_healthy': { BOOL: healthy.value },
         ':last_updated': { S: healthy.last_updated },
-      },
+        ':new_statuses': { L: currentStatuses }
+      }
     },
   };
 };
@@ -98,6 +124,7 @@ async function updateInstallationHealthyStatus() {
     id: item.id.S,
     userId: item.userId.S,
     instance: item.urls.M?.instance.S ?? '',
+    health_statuses: item.health_statuses?.L ?? [],
   }));
 
   const chunkSize = 10;
@@ -107,8 +134,8 @@ async function updateInstallationHealthyStatus() {
     const promises = chunk.map(url => checkInstanceHealth(url));
     const results = await Promise.all(promises);
 
-    const transactItems = results.map(({ item, healthy }) =>
-      buildUpdateAction(item.id, item.userId, healthy),
+    const transactItems = results.map(({ item, healthy, time }) =>
+      buildUpdateAction(item.id, item.userId, healthy, time ?? 0, item.health_statuses),
     );
 
     const transactParams = {
@@ -123,6 +150,7 @@ async function updateInstallationHealthyStatus() {
     body: JSON.stringify({ message: 'Monitoring completed.' }),
   };
 }
+
 
 export const handler = async (_event: any) => {
   try {

@@ -26,7 +26,7 @@ async function GetObservationsHandler(
     }
 
     const fetchLimit = Number(process.env.RETURN_OBSERVATION_COUNT);
-    const response = await getObservations(req.user.userId, installationId, fetchLimit);
+    const response = await getObservations(req.user.userId, installationId, 'descending', fetchLimit);
 
     return res.status(200).json({ body: { items: response.Items } });
   } catch (error) {
@@ -87,12 +87,12 @@ async function PostObservationsHandler(
     };
 
     try {
-      await dynamoDbClient.send(new PutCommand(params));
 
       // Query for all the observations
       const allObservations = await getObservations(
         userId,
         req.agentToken['installation_id'],
+        'ascending',
         1000,
       );
       const sortedObservations = (allObservations.Items ?? []).sort(
@@ -103,7 +103,7 @@ async function PostObservationsHandler(
       // Check if we need to delete any old observations
       if (sortedObservations.length > keepObservationCount) {
         const itemsToDelete = sortedObservations
-          .slice(keepObservationCount)
+          .slice(keepObservationCount- 1)
           .map(observation => {
             return {
               DeleteRequest: {
@@ -127,6 +127,8 @@ async function PostObservationsHandler(
           await dynamoDbClient.send(new BatchWriteItemCommand(batchDeleteParams));
         }
       }
+  
+      await dynamoDbClient.send(new PutCommand(params));
 
       await updateInstallationAgentData(
         userId,

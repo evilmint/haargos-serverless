@@ -1,23 +1,8 @@
-import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, PutCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../dependencies/dynamodb.js';
 
-interface QueryParams {
-  TableName: string;
-  KeyConditionExpression: string;
-  IndexName: string;
-  ExpressionAttributeNames: {
-    [key: string]: string;
-  };
-  ExpressionAttributeValues: {
-    ':userId': string;
-    ':installationId': string;
-  };
-  ScanIndexForward: boolean;
-  Limit?: number;
-}
-
-async function getObservations(userId: string, installationId: string, limit: number) {
-  let params: QueryParams = {
+async function getObservations(userId: string, installationId: string, order: 'ascending' | 'descending', limit: number) {
+  let params: QueryCommandInput = {
     TableName: String(process.env.OBSERVATION_TABLE),
     KeyConditionExpression: '#userId = :userId AND #installation_id = :installationId',
     IndexName: 'userId-installation_id-index',
@@ -29,7 +14,7 @@ async function getObservations(userId: string, installationId: string, limit: nu
       ':userId': userId,
       ':installationId': installationId,
     },
-    ScanIndexForward: false, // This orders by timestamp descending
+    ScanIndexForward: order == 'descending' ? false : true,
   };
 
   if (typeof limit !== 'undefined' && limit != null) {
