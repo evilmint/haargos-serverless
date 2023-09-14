@@ -100,6 +100,7 @@ provider:
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     SLS_STAGE: ${opt:stage, 'dev'}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
+    DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
 
     # Auth0
     AUTH0_ISSUER_BASE_URL: ${self:custom.auth0.issuerBaseUrl}
@@ -121,10 +122,17 @@ functions:
       - httpApi: '*'
 
   automation:
-    handler: automation.handler
+    handler: jobs/automation.handler
     events:
       - schedule:
           rate: rate(4 hours)
+          enabled: true
+
+  dns_verifier:
+    handler: jobs/dns_verifier.handler
+    events:
+      - schedule:
+          rate: rate(5 minutes)
           enabled: true
 
 resources:

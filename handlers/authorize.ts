@@ -1,6 +1,6 @@
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { dynamoDbClient } from '../dependencies/dynamodb';
+import { dynamoDbClient } from '../lib/dynamodb';
 import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { NextFunction, Response } from 'express';

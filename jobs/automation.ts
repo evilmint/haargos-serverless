@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { performance } from 'perf_hooks';
 import { unmarshall, marshall } from '@aws-sdk/util-dynamodb';
-import { dynamoDbClient } from './dependencies/dynamodb.js';
+import { dynamoDbClient } from '../lib/dynamodb.js';
 
 async function retrieveAndStoreLatestHAVersion(): Promise<void> {
   const response: AxiosResponse<{ tag_name: string }, any> = await axios.get(
@@ -116,7 +116,7 @@ const buildUpdateAction = (
 type InstallationItem = {
   id?: string;
   userId?: string;
-  urls: { instance: { url: string; is_verified: boolean; } };
+  urls: { instance?: { url: string; is_verified: boolean } };
   health_statuses: any[];
 };
 
@@ -126,9 +126,9 @@ async function updateInstallationHealthyStatus() {
   };
 
   const scanResult = await dynamoDbClient.send(new ScanCommand(scanParams));
-  const instances: InstallationItem[] = (scanResult.Items ?? []).map(
-    item => unmarshall(item) as InstallationItem,
-  );
+  const instances: InstallationItem[] = (scanResult.Items ?? [])
+    .map(item => unmarshall(item) as InstallationItem)
+    .filter(i => i.urls.instance?.is_verified == true);
 
   const chunkSize = 10;
   const chunks = chunkArray(instances, chunkSize);

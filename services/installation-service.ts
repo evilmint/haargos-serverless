@@ -1,9 +1,10 @@
 import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { PutItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoDbClient } from '../dependencies/dynamodb.js';
+import { dynamoDbClient } from '../lib/dynamodb.js';
 import { encrypt } from '../lib/crypto.js';
 import { v4 } from 'uuid';
 import { marshall } from '@aws-sdk/util-dynamodb';
+import randomstring from 'randomstring';
 
 async function checkInstallation(userId: string, installationId: string) {
   const params = {
@@ -126,12 +127,8 @@ async function createInstallation(
     last_agent_connection: null,
     name: name,
     notes: '',
-    has_unverified_urls: instance.trim() == '',
     urls: {
-      instance: {
-        url: instance,
-        is_verified: false
-      },
+      instance: instance ? { is_verified: false, url: instance, verification_status: 'PENDING' } : null,
     },
   };
 
@@ -141,7 +138,43 @@ async function createInstallation(
   };
 
   await dynamoDbClient.send(new PutItemCommand(params));
+
+  if (installation.urls.instance) {
+    await createDnsVerificationRecord(
+      installation.id,
+      'instance',
+      installation.urls.instance.url,
+    );
+  }
+
   return installation;
+}
+
+async function createDnsVerificationRecord(
+  installationId: string,
+  type: 'instance',
+  instanceUrl: string,
+) {
+  const hostName = new URL(instanceUrl).host;
+
+  const codeLength = 14;
+  const subdomainPrefix = `_${randomstring.generate({ length: codeLength })}`;
+  const verificationValue = randomstring.generate({ length: codeLength });
+
+  const dnsVerification = {
+    installation_id: installationId,
+    type: type,
+    subdomain: `${subdomainPrefix}.${hostName}`,
+    value: `_haargos.dns_verification.value=${verificationValue}`,
+    attempts: 0
+  };
+
+  const params = {
+    TableName: process.env.DNS_VERIFICATION_TABLE,
+    Item: marshall(dnsVerification),
+  };
+
+  await dynamoDbClient.send(new PutItemCommand(params));
 }
 
 export {

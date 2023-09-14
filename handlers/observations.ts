@@ -2,7 +2,7 @@ import { PutCommand, QueryCommandOutput } from '@aws-sdk/lib-dynamodb';
 import { BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
 import { v4 } from 'uuid';
 import { environmentSchema, observationSchema } from '../lib/yup/observation-schema';
-import { dynamoDbClient } from '../dependencies/dynamodb';
+import { dynamoDbClient } from '../lib/dynamodb';
 import { getObservations } from '../services/observation-service';
 import {
   checkInstallation,

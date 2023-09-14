@@ -1,6 +1,6 @@
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoDbClient } from '../dependencies/dynamodb';
+import { dynamoDbClient } from '../lib/dynamodb';
 import {
   createInstallation,
   deleteInstallation,

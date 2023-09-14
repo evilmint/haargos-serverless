@@ -1,5 +1,5 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { dynamoDbClient } from '../dependencies/dynamodb';
+import { dynamoDbClient } from '../lib/dynamodb';
 
 async function deleteAccount(userId: string, secret: string) {
   try {
