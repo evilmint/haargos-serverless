@@ -10,6 +10,8 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 
 export const handler = async (_event: any) => {
+  const attemptsAllowed = 20; // TODO: Move to ENV
+
   try {
     const scanParams: ScanCommandInput = {
       TableName: process.env.DNS_VERIFICATION_TABLE,
@@ -73,7 +75,11 @@ export const handler = async (_event: any) => {
         },
         ExpressionAttributeValues: {
           ':isVerified': isVerified,
-          ':status': isVerified ? 'SUCCESS' : attempts === 2 ? 'FAILED' : 'PENDING',
+          ':status': isVerified
+            ? 'SUCCESS'
+            : attempts >= attemptsAllowed
+            ? 'FAILED'
+            : 'PENDING',
         },
       };
 
@@ -83,12 +89,15 @@ export const handler = async (_event: any) => {
         return {
           statusCode: 400,
           body: JSON.stringify(
-            'Failed updating installation ' + JSON.stringify(updateParams) + 'error: ' + error,
+            'Failed updating installation ' +
+              JSON.stringify(updateParams) +
+              'error: ' +
+              error,
           ),
         };
       }
 
-      if (isVerified || attempts === 2) {
+      if (isVerified || attempts >= attemptsAllowed) {
         const deleteParams: DeleteCommandInput = {
           TableName: process.env.DNS_VERIFICATION_TABLE,
           Key: {
