@@ -1,8 +1,8 @@
-import { object, string, boolean, array, number } from 'yup';
+import { z } from 'zod';
 
-const userSchema = object().shape({
-  full_name: string().max(32),
-  email: string().required().max(64),
-});
+const userSchema = z.object({
+  full_name: z.string().max(32).optional(),
+  email: z.string().max(64),
+}).strict();
 
 export default userSchema;

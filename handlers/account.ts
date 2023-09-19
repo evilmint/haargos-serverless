@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import userSchema from '../lib/yup/user-schema';
 const { deleteAccount, updateAccount } = require('../services/account-service');
 import { Request, Response } from 'express';
@@ -25,12 +26,15 @@ export const DeleteAccountHandler = async (
   }
 };
 
+type ValidatePayload = z.infer<typeof userSchema>;
+
 export const UpdateAccountHandler = async (
   req: TypedRequestBody<{ email: string; full_name: string }>,
   res: Response,
 ) => {
   try {
-    await userSchema.validate(req.body, { abortEarly: true });
+    const payload: ValidatePayload = req.body;
+    userSchema.parse(payload);
 
     const { email, full_name: fullName } = req.body;
 

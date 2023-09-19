@@ -1,4 +1,4 @@
-import { PutCommand, QueryCommandOutput } from '@aws-sdk/lib-dynamodb';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
 import { v4 } from 'uuid';
 import { environmentSchema, observationSchema } from '../lib/yup/observation-schema';
@@ -10,8 +10,8 @@ import {
 } from '../services/installation-service';
 import { BaseRequest } from '../lib/base-request';
 import { NextFunction, Response } from 'express';
-import { InferType } from 'yup';
 import { marshall } from '@aws-sdk/util-dynamodb';
+import { z } from 'zod';
 
 async function GetObservationsHandler(
   req: BaseRequest,
@@ -43,6 +43,8 @@ function chunkArray(array: any[], chunkSize: number) {
   return chunks;
 }
 
+type ValidatePayload = z.infer<typeof observationSchema>;
+
 async function PostObservationsHandler(
   req: BaseRequest,
   res: Response,
@@ -58,7 +60,6 @@ async function PostObservationsHandler(
     req.body.installation_id = req.agentToken['installation_id'];
 
     let requestData = req.body;
-    requestData.userId = userId;
 
     const isInstallationValid = await checkInstallation(
       userId,
@@ -69,8 +70,10 @@ async function PostObservationsHandler(
       return res.status(400).json({ error: 'Invalid installation.' });
     }
 
+    const payload: ValidatePayload = req.body;
+  
     try {
-      await observationSchema.validate(req.body, { abortEarly: true });
+      observationSchema.parse(payload);
     } catch (error) {
       if (req.IN_DEV_STAGE) {
         return res.status(400).json({ error: error });
@@ -79,6 +82,7 @@ async function PostObservationsHandler(
       }
     }
 
+    requestData.userId = userId;
     requestData.timestamp = new Date().toISOString();
     requestData.dangers = createDangers(req.body.environment, req.body.logs);
 
@@ -160,12 +164,12 @@ async function PostObservationsHandler(
   }
 }
 
-function createDangers(environment: InferType<typeof environmentSchema>, logs) {
+function createDangers(environment: z.infer<typeof environmentSchema>, logs: string[]) {
   let dangers: string[] = [];
-  const volumeUsagePercentage = environment.storage.reduce((highest, current) => {
+  const volumeUsagePercentage = environment.storage?.reduce((highest, current) => {
     const cur = parseInt(current.use_percentage.slice(0, -1));
     return cur > highest ? cur : highest;
-  }, 0);
+  }, 0) ?? 0;
 
   if (environment.cpu != null) {
     if (environment.cpu.load > 80) {
