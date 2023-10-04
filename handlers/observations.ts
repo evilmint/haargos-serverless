@@ -27,7 +27,12 @@ async function GetObservationsHandler(
     }
 
     const fetchLimit = Number(process.env.RETURN_OBSERVATION_COUNT);
-    const response = await getObservations(req.user.userId, installationId, 'descending', fetchLimit);
+    const response = await getObservations(
+      req.user.userId,
+      installationId,
+      'descending',
+      fetchLimit,
+    );
 
     return res.status(200).json({ body: { items: response.Items } });
   } catch (error) {
@@ -71,7 +76,7 @@ async function PostObservationsHandler(
     }
 
     const payload: ValidatePayload = req.body;
-  
+
     try {
       observationSchema.parse(payload);
     } catch (error) {
@@ -92,7 +97,6 @@ async function PostObservationsHandler(
     };
 
     try {
-
       // Query for all the observations
       const allObservations = await getObservations(
         userId,
@@ -108,7 +112,7 @@ async function PostObservationsHandler(
       // Check if we need to delete any old observations
       if (sortedObservations.length > keepObservationCount) {
         const itemsToDelete = sortedObservations
-          .slice(keepObservationCount- 1)
+          .slice(keepObservationCount - 1)
           .map(observation => {
             return {
               DeleteRequest: {
@@ -132,7 +136,7 @@ async function PostObservationsHandler(
           await dynamoDbClient.send(new BatchWriteItemCommand(batchDeleteParams));
         }
       }
-  
+
       await dynamoDbClient.send(new PutCommand(params));
 
       await updateInstallationAgentData(
@@ -166,10 +170,11 @@ async function PostObservationsHandler(
 
 function createDangers(environment: z.infer<typeof environmentSchema>, logs: string[]) {
   let dangers: string[] = [];
-  const volumeUsagePercentage = environment.storage?.reduce((highest, current) => {
-    const cur = parseInt(current.use_percentage.slice(0, -1));
-    return cur > highest ? cur : highest;
-  }, 0) ?? 0;
+  const volumeUsagePercentage =
+    environment.storage?.reduce((highest, current) => {
+      const cur = parseInt(current.use_percentage.slice(0, -1));
+      return cur > highest ? cur : highest;
+    }, 0) ?? 0;
 
   if (environment.cpu != null) {
     if (environment.cpu.load > 80) {

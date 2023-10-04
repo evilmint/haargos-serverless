@@ -21,7 +21,7 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
       const params = {
         TableName: process.env.USERS_TABLE,
         Key: marshall({
-          userId:  userId,
+          userId: userId,
           secret: secret,
         }),
       };

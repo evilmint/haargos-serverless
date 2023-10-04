@@ -217,7 +217,7 @@ resources:
           - AttributeName: type
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-  
+
     ConfigurationTable:
       Type: AWS::DynamoDB::Table
       Properties:

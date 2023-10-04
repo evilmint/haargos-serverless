@@ -1,7 +1,12 @@
 import { QueryCommand, PutCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 
-async function getObservations(userId: string, installationId: string, order: 'ascending' | 'descending', limit: number) {
+async function getObservations(
+  userId: string,
+  installationId: string,
+  order: 'ascending' | 'descending',
+  limit: number,
+) {
   let params: QueryCommandInput = {
     TableName: String(process.env.OBSERVATION_TABLE),
     KeyConditionExpression: '#userId = :userId AND #installation_id = :installationId',

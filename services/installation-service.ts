@@ -88,6 +88,7 @@ async function updateInstallation(
   installationId: string,
   name: string,
   url: string,
+  notes: string,
 ) {
   try {
     // Fetch current installation data
@@ -104,12 +105,14 @@ async function updateInstallation(
         userId: userId,
         id: installationId,
       },
-      UpdateExpression: 'SET #name = :name',
+      UpdateExpression: 'SET #name = :name, #notes = :notes',
       ExpressionAttributeNames: {
         '#name': 'name',
+        '#notes': 'notes',
       },
       ExpressionAttributeValues: {
         ':name': name,
+        ':notes': notes,
       },
     };
 
@@ -163,6 +166,26 @@ async function deleteInstallation(userId: string, installationId: string) {
   }
 }
 
+type Installation = {
+  userId: string;
+  id: string;
+  agent_token: string;
+  issues: string[];
+  health_statuses: string[];
+  last_agent_connection: string | null;
+  name: string;
+  notes: string;
+  urls: {
+    instance: {
+      is_verified: boolean;
+      url: string;
+      verification_status: 'PENDING';
+      subdomain: string;
+      subdomain_value: string;
+    } | null;
+  };
+};
+
 async function createInstallation(
   userId: string,
   name: string,
@@ -178,7 +201,7 @@ async function createInstallation(
 
   const agentToken = encrypt(data);
 
-  const installation = {
+  const installation: Installation = {
     userId: userId,
     id: id,
     agent_token: agentToken,
@@ -188,11 +211,28 @@ async function createInstallation(
     name: name,
     notes: '',
     urls: {
-      instance: instance
-        ? { is_verified: false, url: instance, verification_status: 'PENDING' }
-        : null,
+      instance: null,
     },
   };
+
+  if (instance != '') {
+    const { subdomain, subdomain_value } = await createDnsVerificationRecord(
+      id,
+      userId,
+      'instance',
+      instance,
+    );
+
+    installation.urls = {
+      instance: {
+        is_verified: false,
+        url: instance,
+        verification_status: 'PENDING',
+        subdomain: subdomain,
+        subdomain_value: subdomain_value,
+      },
+    };
+  }
 
   const params = {
     TableName: process.env.INSTALLATION_TABLE,

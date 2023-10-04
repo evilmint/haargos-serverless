@@ -6,7 +6,10 @@ import {
   deleteInstallation,
   updateInstallation,
 } from '../services/installation-service';
-import updateInstallationFormSchema from '../lib/yup/installation-schema';
+import {
+  createInstallationFormSchema,
+  updateInstallationFormSchema,
+} from '../lib/yup/installation-schema';
 import { NextFunction, Response } from 'express';
 import { BaseRequest } from '../lib/base-request';
 import { z } from 'zod';
@@ -59,13 +62,13 @@ async function GetInstallationsHandler(
   }
 }
 
-type ValidatePayload = z.infer<typeof updateInstallationFormSchema>;
-
 const CreateInstallationHandler = async (
   req: BaseRequest,
   res: Response,
   _next: NextFunction,
 ) => {
+  type ValidatePayload = z.infer<typeof createInstallationFormSchema>;
+
   try {
     let payload: ValidatePayload = req.body;
 
@@ -82,7 +85,7 @@ const CreateInstallationHandler = async (
     const installation = await createInstallation(
       req.user.userId,
       payload.name,
-      payload.instance,
+      payload.instance.trim(),
       req.user.secret,
     );
 
@@ -112,6 +115,8 @@ const UpdateInstallationHandler = async (
   res: Response,
   _next: NextFunction,
 ) => {
+  type ValidatePayload = z.infer<typeof updateInstallationFormSchema>;
+
   try {
     let payload: ValidatePayload = req.body;
     updateInstallationFormSchema.parse(payload);
@@ -121,6 +126,7 @@ const UpdateInstallationHandler = async (
       req.params.installationId,
       payload.name,
       payload.instance,
+      payload.notes,
     );
     return res.status(200).json({ success: true });
   } catch (error) {
