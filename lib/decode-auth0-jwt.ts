@@ -16,7 +16,7 @@ import jwt_decode from 'jwt-decode';
 */
 function decodeAuth0JWT(jwt: string) {
   const { sub }: { sub: string } = jwt_decode(jwt);
-  return { subIdentifier: sub.split('|')[1] };
+  return { subIdentifier: sub };
 }
 
 export { decodeAuth0JWT };
