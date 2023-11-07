@@ -1,20 +1,21 @@
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { NextFunction, Response } from 'express';
+import { z } from 'zod';
+import { BaseRequest } from '../lib/base-request';
 import { dynamoDbClient } from '../lib/dynamodb';
+import {
+  createInstallationFormSchema,
+  updateInstallationFormSchema,
+} from '../lib/yup/installation-schema';
 import {
   createInstallation,
   deleteInstallation,
   updateInstallation,
 } from '../services/installation-service';
-import {
-  createInstallationFormSchema,
-  updateInstallationFormSchema,
-} from '../lib/yup/installation-schema';
-import { NextFunction, Response } from 'express';
-import { BaseRequest } from '../lib/base-request';
-import { z } from 'zod';
 
 import { marshall } from '@aws-sdk/util-dynamodb';
+import { StatusCodes } from 'http-status-codes';
 const getLatestRelease = async () => {
   try {
     // Define the parameters to get the record from DynamoDB
@@ -55,10 +56,10 @@ async function GetInstallationsHandler(
     const latestHaRelease = await getLatestRelease();
 
     return res
-      .status(200)
+      .status(StatusCodes.OK)
       .json({ body: { latest_ha_release: latestHaRelease, items: response.Items } });
   } catch (error) {
-    return res.status(500).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 }
 
@@ -73,14 +74,16 @@ const CreateInstallationHandler = async (
     let payload: ValidatePayload = req.body;
 
     if (!payload.name) {
-      return res.status(400).json({ error: 'Missing required fields.' });
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ error: 'Missing required fields.' });
     }
 
     if (!payload.instance) {
       payload.instance = '';
     }
 
-    updateInstallationFormSchema.parse(payload);
+    createInstallationFormSchema.parse(payload);
 
     const installation = await createInstallation(
       req.user.userId,
@@ -89,10 +92,10 @@ const CreateInstallationHandler = async (
       req.user.secret,
     );
 
-    return res.status(201).json(installation);
+    return res.status(StatusCodes.CREATED).json(installation);
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(500).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 
@@ -103,10 +106,10 @@ const DeleteInstallationHandler = async (
 ) => {
   try {
     await deleteInstallation(req.user.userId, req.params.installationId);
-    return res.status(200).json({ success: true });
+    return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(500).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 
@@ -128,16 +131,17 @@ const UpdateInstallationHandler = async (
       payload.instance,
       payload.notes,
     );
-    return res.status(200).json({ success: true });
+    return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(500).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 
 export {
   CreateInstallationHandler,
-  GetInstallationsHandler,
   DeleteInstallationHandler,
-  UpdateInstallationHandler,
+  GetInstallationsHandler,
+  UpdateInstallationHandler
 };
+

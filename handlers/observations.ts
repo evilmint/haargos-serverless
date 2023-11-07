@@ -1,17 +1,18 @@
-import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
+import { NextFunction, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
 import { v4 } from 'uuid';
-import { environmentSchema, observationSchema } from '../lib/yup/observation-schema';
+import { z } from 'zod';
+import { BaseRequest } from '../lib/base-request';
 import { dynamoDbClient } from '../lib/dynamodb';
-import { getObservations } from '../services/observation-service';
+import { environmentSchema, observationSchema } from '../lib/yup/observation-schema';
 import {
   checkInstallation,
   updateInstallationAgentData,
 } from '../services/installation-service';
-import { BaseRequest } from '../lib/base-request';
-import { NextFunction, Response } from 'express';
-import { marshall } from '@aws-sdk/util-dynamodb';
-import { z } from 'zod';
+import { getObservations } from '../services/observation-service';
 
 async function GetObservationsHandler(
   req: BaseRequest,
@@ -23,7 +24,7 @@ async function GetObservationsHandler(
     const isInstallationValid = await checkInstallation(req.user.userId, installationId);
 
     if (!isInstallationValid) {
-      return res.status(400).json({ error: 'Invalid installation.' });
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid installation.' });
     }
 
     const fetchLimit = Number(process.env.RETURN_OBSERVATION_COUNT);
@@ -34,9 +35,9 @@ async function GetObservationsHandler(
       fetchLimit,
     );
 
-    return res.status(200).json({ body: { items: response.Items } });
+    return res.status(StatusCodes.OK).json({ body: { items: response.Items } });
   } catch (error) {
-    return res.status(500).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 }
 
@@ -57,7 +58,7 @@ async function PostObservationsHandler(
 ) {
   try {
     if (!req.agentToken) {
-      return res.status(400).json({ error: 'Bad request' });
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
     }
 
     const userId = req.agentToken['user_id'];
@@ -72,7 +73,7 @@ async function PostObservationsHandler(
     );
 
     if (!isInstallationValid) {
-      return res.status(400).json({ error: 'Invalid installation.' });
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid installation.' });
     }
 
     const payload: ValidatePayload = req.body;
@@ -81,9 +82,9 @@ async function PostObservationsHandler(
       observationSchema.parse(payload);
     } catch (error) {
       if (req.IN_DEV_STAGE) {
-        return res.status(400).json({ error: error });
+        return res.status(StatusCodes.BAD_REQUEST).json({ error: error });
       } else {
-        return res.status(400).json({ error: 'Bad request' });
+        return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
       }
     }
 
@@ -147,22 +148,22 @@ async function PostObservationsHandler(
 
       return res.json({ status: 200 });
     } catch (error) {
-      return res.status(500).json({ error: error });
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
     }
   } catch (error) {
     if (error.name === 'ValidationError') {
       const validationErrors = error.errors; // TODO: Don't print when not in debug
 
       if (req.IN_DEV_STAGE) {
-        return res.status(400).json({ error: validationErrors });
+        return res.status(StatusCodes.BAD_REQUEST).json({ error: validationErrors });
       } else {
-        return res.status(400).json({ error: 'Bad request' });
+        return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
       }
     } else {
       // Other unexpected errors
       console.error(error);
       return res
-        .status(500)
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .json({ error: 'Could not insert observation data [error=' + error + '].' });
     }
   }

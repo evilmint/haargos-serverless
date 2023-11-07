@@ -1,20 +1,21 @@
-import express from 'express';
-import serverless from 'serverless-http';
 import cors from 'cors';
-import { UsersMeHandler } from './handlers/users';
-import { notFoundHandler } from './handlers/not-found';
-import { authorize } from './handlers/authorize';
+import express from 'express';
 import { auth } from 'express-oauth2-jwt-bearer';
+import serverless from 'serverless-http';
+import { authorize } from './handlers/authorize';
+import { PostContactHandler } from './handlers/contact';
+import { notFoundHandler } from './handlers/not-found';
+import { UsersMeHandler } from './handlers/users';
 import { compressForAWSLambda } from './lib/compression';
 
+import { CreateAccountHandler, DeleteAccountHandler, UpdateAccountHandler } from './handlers/account';
 import {
-  GetInstallationsHandler,
   CreateInstallationHandler,
   DeleteInstallationHandler,
+  GetInstallationsHandler,
   UpdateInstallationHandler,
 } from './handlers/installations';
-import { DeleteAccountHandler, UpdateAccountHandler } from './handlers/account';
-import { PostObservationsHandler, GetObservationsHandler } from './handlers/observations';
+import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
 
 const app = express();
 
@@ -40,10 +41,12 @@ app.delete(
   [jwtCheck, authorize],
   DeleteInstallationHandler,
 );
+app.post('/account', [jwtCheck], CreateAccountHandler);
 app.put('/account', [jwtCheck, authorize], UpdateAccountHandler);
 app.delete('/account', [jwtCheck, authorize], DeleteAccountHandler);
 app.get('/observations', [jwtCheck, authorize], GetObservationsHandler);
 app.post('/observations', authorize, PostObservationsHandler);
+app.post('/contact', PostContactHandler);
 
 app.use(notFoundHandler);
 

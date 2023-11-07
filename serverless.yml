@@ -6,7 +6,7 @@ plugins:
   - serverless-plugin-typescript
 custom:
   customDomain:
-    domainName: api.haargos.smartrezydencja.pl
+    domainName: api.haargos.com
     basePath: ''
     stage: '$default'
     createRoute53Record: true
@@ -17,12 +17,13 @@ custom:
   installationTableName: 'installations-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
   dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
+  contactTableName: 'contact-table-${sls:stage}'
   subTableName: 'sub-table-${sls:stage}'
   crypto:
     key: '793I4BGlD$czvtCWKBDWKy7Og6GgFl^@'
   auth0:
     issuerBaseUrl: 'https://dev-ofc2nc2a0lc4ncig.eu.auth0.com/'
-    audience: 'https://api.haargos.smartrezydencja.pl'
+    audience: 'https://api.haargos.com'
     domain: 'dev-ofc2nc2a0lc4ncig.eu.auth0.com'
     clientId: '3EGUK8VIxgWNygQ1My32IIMeFz2KFeXm'
   maxObservationsKept: 10
@@ -87,6 +88,14 @@ provider:
         - Effect: Allow
           Action:
             - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:PutItem
+          Resource:
+            - Fn::GetAtt: [ContactTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
             - dynamodb:PutItem
           Resource:
             - Fn::GetAtt: [SubTable, Arn]
@@ -108,6 +117,7 @@ provider:
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
     DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
+    CONTACT_TABLE: ${self:custom.contactTableName}
     SUB_TABLE: ${self:custom.subTableName}
 
     # Auth0
@@ -237,6 +247,27 @@ resources:
           - AttributeName: type
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+
+    ContactTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.contactTableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
 
     SubTable:
       Type: AWS::DynamoDB::Table

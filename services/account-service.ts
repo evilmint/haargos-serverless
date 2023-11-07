@@ -1,5 +1,8 @@
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { addNewSub } from '../lib/add-new-sub';
 import { dynamoDbClient } from '../lib/dynamodb';
+
+const AuthenticationClient = require('auth0').AuthenticationClient;
 
 async function deleteAccount(userId: string, secret: string) {
   try {
@@ -21,7 +24,7 @@ async function deleteAccount(userId: string, secret: string) {
       ExpressionAttributeValues: {
         ':active': false,
         ':full_name': '',
-        ':email': '',
+        ':email': `${require('crypto').randomUUID()}@email.com`,
       },
     };
 
@@ -63,4 +66,65 @@ async function updateAccount(
   }
 }
 
-export { updateAccount, deleteAccount };
+async function createAccount(token: string, sub: string, fullName: string): Promise<any> {
+  const auth0 = new AuthenticationClient({
+    domain: process.env.AUTH0_DOMAIN,
+    clientId: process.env.AUTH0_CLIENT_ID,
+  });
+
+  try {
+    const userProfile = await auth0.getProfile(token);
+    const email = userProfile.email;
+    const active = userProfile.email_verified;
+
+    // Check if a user with this email already exists
+    const queryParams = {
+      TableName: process.env.USERS_TABLE,
+      IndexName: 'email-index',
+      KeyConditionExpression: 'email = :email',
+      ExpressionAttributeValues: {
+        ':email': email
+      },
+      Limit: 1
+    };
+
+    const queryResult = await dynamoDbClient.send(new QueryCommand(queryParams));
+
+    if ((queryResult.Count ?? 0) > 0 && queryResult.Items && queryResult.Items?.length > 0) {
+      // A user with this email already exists, return that record
+      return queryResult.Items[0];
+    }
+
+    const userId = require('crypto').randomUUID(); // Generate a new userId
+
+    // Create the account in the USERS_TABLE
+    const putParams = {
+      TableName: process.env.USERS_TABLE,
+      Item: {
+        userId: userId,
+        secret: require('crypto').randomUUID(),
+        active: active,
+        email: email,
+        full_name: fullName,
+        sub: sub,
+      },
+    };
+    await dynamoDbClient.send(new PutCommand(putParams));
+    await addNewSub(sub, userId);
+
+    const user = {
+      userId: userId,
+      secret: putParams.Item.secret.S,
+      active: active,
+      email: email,
+      full_name: fullName,
+      sub: sub,
+    };
+
+    return user;
+  } catch (error) {
+    throw new Error('Failed to create account: ' + error.message);
+  }
+}
+
+export { createAccount, deleteAccount, updateAccount };

@@ -1,7 +1,9 @@
-import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { NextFunction, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import { addNewSub } from '../lib/add-new-sub';
 import { BaseRequest } from '../lib/base-request';
 import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
@@ -59,15 +61,21 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
 
           req.user = user;
         } catch (error) {
-          return res.status(403).json({ error: 'Invalid authentication token.' });
+          return res
+            .status(StatusCodes.FORBIDDEN)
+            .json({ error: 'Invalid authentication token.' });
         }
       }
     } else {
-      return res.status(403).json({ error: 'Invalid authentication token.' });
+      return res
+        .status(StatusCodes.FORBIDDEN)
+        .json({ error: 'Invalid authentication token.' });
     }
 
     if (!req.user.active) {
-      return res.status(403).json({ error: 'Invalid authentication token.' });
+      return res
+        .status(StatusCodes.FORBIDDEN)
+        .json({ error: 'Invalid authentication token.' });
     }
 
     req.IN_DEV_STAGE = process.env.SLS_STAGE === 'dev';
@@ -75,7 +83,9 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
     next();
   } catch (error) {
     console.error('Error verifying user:', error);
-    return res.status(403).json({ error: `Could not verify user [error=${error}].` });
+    return res
+      .status(StatusCodes.FORBIDDEN)
+      .json({ error: `Could not verify user [error=${error}].` });
   }
 };
 
@@ -141,18 +151,6 @@ async function fetchUserByEmail(email: string): Promise<any> {
   }
 
   return userResponse.Items[0];
-}
-
-async function addNewSub(sub: string, userId: string): Promise<any> {
-  const params = {
-    TableName: process.env.SUB_TABLE,
-    Item: marshall({
-      sub: sub,
-      user_id: userId,
-    }),
-  };
-
-  return await dynamoDbClient.send(new PutItemCommand(params));
 }
 
 export { authorize };

@@ -5,7 +5,7 @@ import jwt_decode from 'jwt-decode';
   "iss": "https://dev-ofc2nc2a0lc4ncig.eu.auth0.com/",
   "sub": "google-oauth2|104982419532132937804",
   "aud": [
-    "https://api.haargos.smartrezydencja.pl",
+    "https://api.haargos.com",
     "https://dev-ofc2nc2a0lc4ncig.eu.auth0.com/userinfo"
   ],
   "iat": 1693566766,
