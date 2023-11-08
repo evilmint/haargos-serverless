@@ -6,6 +6,5 @@ const userSchema = z
     email: z.string().max(64),
   })
   .strict();
-  
 
 export default userSchema;

@@ -1,13 +1,15 @@
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { marshall } from '@aws-sdk/util-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { NextFunction, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { addNewSub } from '../lib/add-new-sub';
-import { BaseRequest } from '../lib/base-request';
+import { BaseRequest, User } from '../lib/base-request';
 import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { dynamoDbClient } from '../lib/dynamodb';
+import { Tier } from '../lib/tier-resolver';
+
 const AuthenticationClient = require('auth0').AuthenticationClient;
 
 interface SubRecord {
@@ -36,7 +38,7 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
 
       req.agentToken = decryptedData;
       response = await dynamoDbClient.send(new GetItemCommand(params));
-      req.user = response.Item;
+      req.user = unmarshall(response.Item) as User;
     } else if (req.auth && req.auth.token) {
       // Web
       const subIdentifier = decodeAuth0JWT(req.auth.token).subIdentifier;
@@ -79,6 +81,7 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
     }
 
     req.IN_DEV_STAGE = process.env.SLS_STAGE === 'dev';
+    req.user = processUser(req.user);
 
     next();
   } catch (error) {
@@ -110,7 +113,7 @@ async function fetchSubRecord(sub: string): Promise<SubRecord> {
   return { userId: response.Items[0].user_id };
 }
 
-async function fetchUserById(userId: string): Promise<any> {
+async function fetchUserById(userId: string): Promise<User> {
   const userParams = {
     TableName: process.env.USERS_TABLE,
     KeyConditionExpression: '#userId = :userId',
@@ -128,10 +131,10 @@ async function fetchUserById(userId: string): Promise<any> {
     throw new Error('Invalid authentication token.');
   }
 
-  return userResponse.Items[0];
+  return userResponse.Items[0] as User;
 }
 
-async function fetchUserByEmail(email: string): Promise<any> {
+async function fetchUserByEmail(email: string): Promise<User> {
   const userParams = {
     TableName: process.env.USERS_TABLE,
     IndexName: 'email-index',
@@ -150,7 +153,23 @@ async function fetchUserByEmail(email: string): Promise<any> {
     throw new Error('No user found.');
   }
 
-  return userResponse.Items[0];
+  return userResponse.Items[0] as User;
+}
+
+function processUser(user: User): User {
+  const getMostRecentActiveSubscriptionTier = (user: User): Tier => {
+    const activeSubscriptions = (user.subscriptions ?? [])
+      .filter(sub => new Date(sub.expires_on) >= new Date())
+      .sort(
+        (a, b) => new Date(b.activated_on).getTime() - new Date(a.activated_on).getTime(),
+      );
+
+    return activeSubscriptions.length > 0 ? activeSubscriptions[0].tier : Tier.Expired;
+  };
+
+  let newUser = user;
+  newUser.tier = getMostRecentActiveSubscriptionTier(user);
+  return newUser;
 }
 
 export { authorize };

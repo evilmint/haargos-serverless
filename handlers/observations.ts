@@ -7,12 +7,36 @@ import { v4 } from 'uuid';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { dynamoDbClient } from '../lib/dynamodb';
+import { Tier, TierResolver } from '../lib/tier-resolver';
 import { environmentSchema, observationSchema } from '../lib/yup/observation-schema';
 import {
   checkInstallation,
   updateInstallationAgentData,
 } from '../services/installation-service';
 import { getObservations } from '../services/observation-service';
+
+function mergeLogsAndDeduplicate(queryResult) {
+  // Create a Set to store unique log entries
+  const logsSet = new Set();
+
+  // Iterate over the items and add logs to the Set
+  queryResult.Items.forEach(item => {
+    const logs = item.logs ? item.logs.split('\n') : []; // Split logs by new line
+    logs.forEach(log => logsSet.add(log)); // Add each log entry to the Set
+    delete item.logs;
+  });
+
+  // Convert the Set back to an array and join it into a single string
+  const uniqueLogs = Array.from(logsSet).join('\n');
+
+  // Add the deduplicated logs to the root level of the response
+  const response = {
+    ...queryResult, // Spread the existing queryResult properties
+    logs: uniqueLogs, // Add the deduplicated logs
+  };
+
+  return response;
+}
 
 async function GetObservationsHandler(
   req: BaseRequest,
@@ -27,7 +51,7 @@ async function GetObservationsHandler(
       return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid installation.' });
     }
 
-    const fetchLimit = Number(process.env.RETURN_OBSERVATION_COUNT);
+    const fetchLimit = TierResolver.getObservationsLimit(req.user.tier);
     const response = await getObservations(
       req.user.userId,
       installationId,
@@ -35,7 +59,11 @@ async function GetObservationsHandler(
       fetchLimit,
     );
 
-    return res.status(StatusCodes.OK).json({ body: { items: response.Items } });
+    const resultWithMergedLogs = await mergeLogsAndDeduplicate(response);
+
+    return res.status(StatusCodes.OK).json({
+      body: { Items: resultWithMergedLogs.Items, logs: resultWithMergedLogs.logs },
+    });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
@@ -88,6 +116,14 @@ async function PostObservationsHandler(
       }
     }
 
+    if (req.user.tier === Tier.Expired) {
+      // Throw when in a service
+      // throw new UpgradeTierError('Expired accounts cannot submit observations');
+      return res
+        .status(StatusCodes.CONFLICT)
+        .json({ error: 'Expired accounts cannot submit observations' });
+    }
+
     requestData.userId = userId;
     requestData.timestamp = new Date().toISOString();
     requestData.dangers = createDangers(req.body.environment, req.body.logs);
@@ -109,7 +145,8 @@ async function PostObservationsHandler(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
 
-      const keepObservationCount = Number(process.env.MAX_OBSERVATIONS_KEPT ?? '0');
+      const keepObservationCount = TierResolver.getObservationsLimit(req.user.tier);
+
       // Check if we need to delete any old observations
       if (sortedObservations.length > keepObservationCount) {
         const itemsToDelete = sortedObservations
@@ -146,7 +183,7 @@ async function PostObservationsHandler(
         requestData.dangers,
       );
 
-      return res.json({ status: 200 });
+      return res.json({ status: StatusCodes.OK });
     } catch (error) {
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
     }

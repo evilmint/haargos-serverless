@@ -9,6 +9,7 @@ import {
   updateInstallationFormSchema,
 } from '../lib/yup/installation-schema';
 import {
+  InstallationLimitError,
   createInstallation,
   deleteInstallation,
   updateInstallation,
@@ -85,14 +86,24 @@ const CreateInstallationHandler = async (
 
     createInstallationFormSchema.parse(payload);
 
-    const installation = await createInstallation(
-      req.user.userId,
-      payload.name,
-      payload.instance.trim(),
-      req.user.secret,
-    );
-
-    return res.status(StatusCodes.CREATED).json(installation);
+    try {
+      const installation = await createInstallation(
+        req.user.tier,
+        req.user.userId,
+        payload.name,
+        payload.instance.trim(),
+        req.user.secret,
+      );
+      return res.status(StatusCodes.CREATED).json(installation);
+    } catch (error) {
+      if (error instanceof InstallationLimitError) {
+        return res
+          .status(StatusCodes.CONFLICT)
+          .json({ body: 'Upgrade Tier to create more installations' });
+      } else {
+        throw error;
+      }
+    }
   } catch (error) {
     console.error('An error occurred:', error);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
@@ -142,6 +153,5 @@ export {
   CreateInstallationHandler,
   DeleteInstallationHandler,
   GetInstallationsHandler,
-  UpdateInstallationHandler
+  UpdateInstallationHandler,
 };
-

@@ -1,4 +1,4 @@
-import { QueryCommand, PutCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 
 async function getObservations(

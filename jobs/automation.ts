@@ -1,11 +1,12 @@
-import axios, { AxiosResponse } from 'axios';
 import {
   ScanCommand,
-  UpdateItemCommand,
   TransactWriteItemsCommand,
+  UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import axios, { AxiosResponse } from 'axios';
+import { StatusCodes } from 'http-status-codes';
 import { performance } from 'perf_hooks';
-import { unmarshall, marshall } from '@aws-sdk/util-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 
 async function retrieveAndStoreLatestHAVersion(): Promise<void> {
@@ -155,7 +156,7 @@ async function updateInstallationHealthyStatus() {
   }
 
   return {
-    statusCode: 200,
+    statusCode: StatusCodes.OK,
     body: JSON.stringify({ message: 'Monitoring completed.' }),
   };
 }
@@ -168,7 +169,7 @@ export const handler = async (_event: any) => {
   } catch (error) {
     console.error('An error occurred:', error);
     return {
-      statusCode: 500,
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
       body: JSON.stringify('An error occurred while processing your request.'),
     };
   }

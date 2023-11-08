@@ -1,13 +1,13 @@
-import { ScanCommand } from '@aws-sdk/client-dynamodb';
-import { UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { dynamoDbClient } from '../lib/dynamodb';
-import dns from 'dns';
+import { DeleteItemCommand, ScanCommand } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommandInput,
   ScanCommandInput,
+  UpdateCommand,
   UpdateCommandInput,
 } from '@aws-sdk/lib-dynamodb';
+import dns from 'dns';
+import { StatusCodes } from 'http-status-codes';
+import { dynamoDbClient } from '../lib/dynamodb';
 
 export const handler = async (_event: any) => {
   const attemptsAllowed = 20; // TODO: Move to ENV
@@ -53,7 +53,7 @@ export const handler = async (_event: any) => {
           await dynamoDbClient.send(new UpdateCommand(updateAttemptsParams));
         } catch {
           return {
-            statusCode: 400,
+            statusCode: StatusCodes.BAD_REQUEST,
             body: JSON.stringify(
               'Failed updating attempts ' + JSON.stringify(updateAttemptsParams),
             ),
@@ -87,7 +87,7 @@ export const handler = async (_event: any) => {
         await dynamoDbClient.send(new UpdateCommand(updateParams));
       } catch (error) {
         return {
-          statusCode: 400,
+          statusCode: StatusCodes.BAD_REQUEST,
           body: JSON.stringify(
             'Failed updating installation ' +
               JSON.stringify(updateParams) +
@@ -110,7 +110,7 @@ export const handler = async (_event: any) => {
           await dynamoDbClient.send(new DeleteItemCommand(deleteParams));
         } catch (error) {
           return {
-            statusCode: 400,
+            statusCode: StatusCodes.BAD_REQUEST,
             body: JSON.stringify(
               'Failed deleting record' +
                 JSON.stringify(deleteParams) +
@@ -122,19 +122,19 @@ export const handler = async (_event: any) => {
       }
 
       return {
-        statusCode: 200,
+        statusCode: StatusCodes.OK,
         body: `No Entries isVerified: ${isVerified} entries: ${entries}`,
       };
     }
 
     return {
-      statusCode: 200,
+      statusCode: StatusCodes.OK,
       body: 'No Entries isVerified: ',
     };
   } catch (error) {
     console.error('An error occurred:', error);
     return {
-      statusCode: 500,
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
       body: JSON.stringify('An error occurred while processing your request.'),
     };
   }

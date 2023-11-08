@@ -1,15 +1,11 @@
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
+import { User } from '../lib/base-request';
 import createAccountSchema from '../lib/yup/account-schema';
 import userSchema from '../lib/yup/user-schema';
 import { createAccount } from '../services/account-service';
 const { deleteAccount, updateAccount } = require('../services/account-service');
-
-interface User {
-  userId: string;
-  secret: string;
-}
 
 interface TypedRequestBody<T> extends Request {
   body: T;
@@ -62,7 +58,11 @@ export const CreateAccountHandler = async (
     if (!req.auth || !req.auth?.payload.sub) {
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json();
     }
-    const user = await createAccount(req.auth.token, req.auth.payload.sub, req.body.userFullName);
+    const user = await createAccount(
+      req.auth.token,
+      req.auth.payload.sub,
+      req.body.userFullName,
+    );
 
     return res.status(StatusCodes.CREATED).json({ body: user });
   } catch (error) {

@@ -39,12 +39,9 @@ export const updateInstallationFormSchema = z.object({
     .max(30, {
       message: 'Name must not be longer than 32 characters.',
     }),
-  notes: z
-    .string()
-    .trim()
-    .max(255, {
-      message: 'Notes must not be longer than 255 characters.',
-    }),
+  notes: z.string().trim().max(255, {
+    message: 'Notes must not be longer than 255 characters.',
+  }),
   instance: z.union([
     z.literal(''),
     z

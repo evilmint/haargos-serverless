@@ -8,7 +8,11 @@ import { notFoundHandler } from './handlers/not-found';
 import { UsersMeHandler } from './handlers/users';
 import { compressForAWSLambda } from './lib/compression';
 
-import { CreateAccountHandler, DeleteAccountHandler, UpdateAccountHandler } from './handlers/account';
+import {
+  CreateAccountHandler,
+  DeleteAccountHandler,
+  UpdateAccountHandler,
+} from './handlers/account';
 import {
   CreateInstallationHandler,
   DeleteInstallationHandler,

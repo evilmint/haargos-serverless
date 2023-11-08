@@ -1,16 +1,16 @@
+import { DeleteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommandInput,
   QueryCommand,
-  QueryCommandOutput,
   UpdateCommand,
   UpdateCommandInput,
 } from '@aws-sdk/lib-dynamodb';
-import { PutItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoDbClient } from '../lib/dynamodb.js';
-import { encrypt } from '../lib/crypto.js';
-import { v4 } from 'uuid';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import randomstring from 'randomstring';
+import { v4 } from 'uuid';
+import { encrypt } from '../lib/crypto.js';
+import { dynamoDbClient } from '../lib/dynamodb.js';
+import { Tier, TierResolver } from '../lib/tier-resolver.js';
 
 async function checkInstallation(userId: string, installationId: string) {
   const params = {
@@ -186,12 +186,47 @@ type Installation = {
   };
 };
 
+export class InstallationLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InstallationLimitError';
+    Object.setPrototypeOf(this, InstallationLimitError.prototype);
+  }
+}
+
+async function countUserInstallations(userId: string): Promise<number> {
+  const params = {
+    TableName: process.env.INSTALLATION_TABLE,
+    KeyConditionExpression: '#userId = :userId',
+    ExpressionAttributeNames: {
+      '#userId': 'userId',
+    },
+    ExpressionAttributeValues: {
+      ':userId': userId,
+    },
+    Select: 'COUNT',
+  };
+
+  const response = await dynamoDbClient.send(new QueryCommand(params));
+  return response.Count || 0;
+}
+
 async function createInstallation(
+  tier: Tier,
   userId: string,
   name: string,
   instance: string = '',
   secret: string,
 ) {
+  const maxInstallations = TierResolver.numberOfInstallations(tier);
+  const currentInstallationCount = await countUserInstallations(userId);
+
+  if (currentInstallationCount >= maxInstallations) {
+    throw new InstallationLimitError(
+      'User has reached the maximum number of installations allowed.',
+    );
+  }
+
   const id = v4();
   const data = {
     secret: secret,
@@ -290,8 +325,8 @@ async function createDnsVerificationRecord(
 
 export {
   checkInstallation,
-  updateInstallationAgentData,
-  updateInstallation,
   createInstallation,
   deleteInstallation,
+  updateInstallation,
+  updateInstallationAgentData,
 };

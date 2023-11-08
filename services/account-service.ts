@@ -1,6 +1,7 @@
 import { PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { addNewSub } from '../lib/add-new-sub';
 import { dynamoDbClient } from '../lib/dynamodb';
+import { Tier } from '../lib/tier-resolver';
 
 const AuthenticationClient = require('auth0').AuthenticationClient;
 
@@ -66,6 +67,12 @@ async function updateAccount(
   }
 }
 
+function generateDateStringWithAddedWeeks(weeks: number): string {
+  const now = new Date();
+  now.setDate(now.getDate() + weeks * 7); // Add weeks
+  return now.toISOString().split('T')[0]; // Return date in YYYY-MM-DD format
+}
+
 async function createAccount(token: string, sub: string, fullName: string): Promise<any> {
   const auth0 = new AuthenticationClient({
     domain: process.env.AUTH0_DOMAIN,
@@ -83,17 +90,23 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
       IndexName: 'email-index',
       KeyConditionExpression: 'email = :email',
       ExpressionAttributeValues: {
-        ':email': email
+        ':email': email,
       },
-      Limit: 1
+      Limit: 1,
     };
 
     const queryResult = await dynamoDbClient.send(new QueryCommand(queryParams));
 
-    if ((queryResult.Count ?? 0) > 0 && queryResult.Items && queryResult.Items?.length > 0) {
+    if (
+      (queryResult.Count ?? 0) > 0 &&
+      queryResult.Items &&
+      queryResult.Items?.length > 0
+    ) {
       // A user with this email already exists, return that record
       return queryResult.Items[0];
     }
+    const activatedOn = generateDateStringWithAddedWeeks(0); // Today
+    const expiresOn = generateDateStringWithAddedWeeks(2); // 2 weeks from now
 
     const userId = require('crypto').randomUUID(); // Generate a new userId
 
@@ -104,9 +117,16 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
         userId: userId,
         secret: require('crypto').randomUUID(),
         active: active,
+        subscriptions: [
+          {
+            activated_on: activatedOn,
+            expires_on: expiresOn,
+            purchase_id: 'NEW_ACCOUNT',
+            tier: Tier.Explorer,
+          },
+        ],
         email: email,
         full_name: fullName,
-        sub: sub,
       },
     };
     await dynamoDbClient.send(new PutCommand(putParams));
@@ -114,11 +134,11 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
 
     const user = {
       userId: userId,
-      secret: putParams.Item.secret.S,
+      //secret: putParams.Item.secret.S,
       active: active,
+      subscriptions: [],
       email: email,
       full_name: fullName,
-      sub: sub,
     };
 
     return user;
