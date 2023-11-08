@@ -53,6 +53,7 @@ async function GetObservationsHandler(
 
     const fetchLimit = TierResolver.getObservationsLimit(req.user.tier);
     const response = await getObservations(
+      req.user.tier,
       req.user.userId,
       installationId,
       'descending',
@@ -136,6 +137,7 @@ async function PostObservationsHandler(
     try {
       // Query for all the observations
       const allObservations = await getObservations(
+        req.user.tier,
         userId,
         req.agentToken['installation_id'],
         'ascending',

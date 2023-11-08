@@ -33,6 +33,10 @@ class TierResolver {
     }
   }
 
+  static isAdvancedAnalyticsEnabled(tier: Tier): boolean {
+    return tier !== Tier.Expired && tier !== Tier.Explorer;
+  }
+
   static isSupportAvailable(tier: Tier): boolean {
     return tier !== Tier.Explorer;
   }

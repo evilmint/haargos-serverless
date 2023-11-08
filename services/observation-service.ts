@@ -1,7 +1,9 @@
 import { PutCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb.js';
+import { Tier, TierResolver } from '../lib/tier-resolver.js';
 
 async function getObservations(
+  tier: Tier,
   userId: string,
   installationId: string,
   order: 'ascending' | 'descending',
@@ -26,7 +28,18 @@ async function getObservations(
     params.Limit = limit;
   }
 
-  return await dynamoDbClient.send(new QueryCommand(params));
+  let observations = await dynamoDbClient.send(new QueryCommand(params));
+
+  if (!TierResolver.isAdvancedAnalyticsEnabled(tier)) {
+    observations.Items?.forEach(observation => {
+      observation.zigbee.devices.forEach(device => {
+        delete device.lqi;
+        delete device.battery;
+      });
+    });
+  }
+
+  return observations;
 }
 
 async function putObservation(item: any) {
