@@ -12,6 +12,7 @@ export type User = {
   active: boolean;
   userId: string;
   secret: string;
+  subscription: Subscription | null;
   subscriptions: Subscription[] | null;
 };
 

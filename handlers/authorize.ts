@@ -4,7 +4,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { NextFunction, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { addNewSub } from '../lib/add-new-sub';
-import { BaseRequest, User } from '../lib/base-request';
+import { BaseRequest, Subscription, User } from '../lib/base-request';
 import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { dynamoDbClient } from '../lib/dynamodb';
@@ -157,18 +157,22 @@ async function fetchUserByEmail(email: string): Promise<User> {
 }
 
 function processUser(user: User): User {
-  const getMostRecentActiveSubscriptionTier = (user: User): Tier => {
+  const getMostRecentActiveSubscription = (user: User): Subscription | null => {
     const activeSubscriptions = (user.subscriptions ?? [])
       .filter(sub => new Date(sub.expires_on) >= new Date())
       .sort(
         (a, b) => new Date(b.activated_on).getTime() - new Date(a.activated_on).getTime(),
       );
 
-    return activeSubscriptions.length > 0 ? activeSubscriptions[0].tier : Tier.Expired;
+    return activeSubscriptions.length > 0 ? activeSubscriptions[0] : null;
   };
 
+  const subscription = getMostRecentActiveSubscription(user);
+
   let newUser = user;
-  newUser.tier = getMostRecentActiveSubscriptionTier(user);
+  newUser.tier = subscription?.tier ?? Tier.Expired;
+  newUser.subscription = subscription;
+
   return newUser;
 }
 
