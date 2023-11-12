@@ -1,5 +1,4 @@
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { NextFunction, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
@@ -9,12 +8,10 @@ import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { dynamoDbClient } from '../lib/dynamodb';
 import { Tier } from '../lib/tier-resolver';
+import { fetchSubRecord } from '../services/sub-service';
+import { fetchUserByEmail, fetchUserById } from '../services/user-service';
 
 const AuthenticationClient = require('auth0').AuthenticationClient;
-
-interface SubRecord {
-  userId: string;
-}
 
 const authorize = async (req: BaseRequest, res: Response, next: NextFunction) => {
   try {
@@ -91,70 +88,6 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
       .json({ error: `Could not verify user [error=${error}].` });
   }
 };
-
-async function fetchSubRecord(sub: string): Promise<SubRecord> {
-  const params = {
-    TableName: process.env.SUB_TABLE,
-    KeyConditionExpression: '#sub = :sub',
-    ExpressionAttributeNames: {
-      '#sub': 'sub',
-    },
-    ExpressionAttributeValues: {
-      ':sub': sub,
-    },
-  };
-
-  const response = await dynamoDbClient.send(new QueryCommand(params));
-
-  if (!response.Items || response.Items.length == 0) {
-    throw new Error('Invalid authentication token');
-  }
-
-  return { userId: response.Items[0].user_id };
-}
-
-async function fetchUserById(userId: string): Promise<User> {
-  const userParams = {
-    TableName: process.env.USERS_TABLE,
-    KeyConditionExpression: '#userId = :userId',
-    ExpressionAttributeNames: {
-      '#userId': 'userId',
-    },
-    ExpressionAttributeValues: {
-      ':userId': userId,
-    },
-  };
-
-  const userResponse = await dynamoDbClient.send(new QueryCommand(userParams));
-
-  if (!userResponse.Items || userResponse.Items.length == 0) {
-    throw new Error('Invalid authentication token.');
-  }
-
-  return userResponse.Items[0] as User;
-}
-
-async function fetchUserByEmail(email: string): Promise<User> {
-  const userParams = {
-    TableName: process.env.USERS_TABLE,
-    IndexName: 'email-index',
-    KeyConditionExpression: '#email = :email',
-    ExpressionAttributeNames: {
-      '#email': 'email',
-    },
-    ExpressionAttributeValues: {
-      ':email': email,
-    },
-  };
-
-  const userResponse = await dynamoDbClient.send(new QueryCommand(userParams));
-
-  if (!userResponse.Items || userResponse.Items.length == 0) {
-    throw new Error('No user found.');
-  }
-
-  return userResponse.Items[0] as User;
-}
 
 function processUser(user: User): User {
   const getMostRecentActiveSubscription = (user: User): Subscription | null => {

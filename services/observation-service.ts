@@ -12,17 +12,19 @@ import { User } from '../lib/base-request.js';
 import { chunkArray } from '../lib/chunk-array.js';
 import { Danger } from '../lib/danger.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
-import { FailedToSubmitObservationError, UpgradeTierError } from '../lib/errors.js';
+import { UpgradeTierError } from '../lib/errors.js';
 import { Tier, TierResolver } from '../lib/tier-resolver.js';
 import { environmentSchema } from '../lib/yup/observation-schema.js';
 import { updateInstallationAgentData } from './installation-service.js';
 
-function mergeLogsAndDeduplicate(queryResult: QueryCommandOutput) {
-  const logsSet = new Set<string>();
+type ResponseWithLogs = QueryCommandOutput & { logs: string };
+
+function mergeLogsAndDeduplicate(queryResult: QueryCommandOutput): ResponseWithLogs {
+  const logsSet = new Set();
 
   queryResult.Items?.forEach(item => {
     const logs = item.logs ? item.logs.split('\n') : [];
-    logs.forEach((log: string) => logsSet.add(log));
+    logs.forEach(log => logsSet.add(log));
     delete item.logs; // Remove the logs property so that it's not returned to the user
   });
 
@@ -39,8 +41,8 @@ async function getObservations(
   userId: string,
   installationId: string,
   order: 'ascending' | 'descending',
-  limit: number,
-) {
+  limit: number | null,
+): Promise<{ Items: Record<string, any>[]; logs: string }> {
   let params: QueryCommandInput = {
     TableName: String(process.env.OBSERVATION_TABLE),
     KeyConditionExpression: '#userId = :userId AND #installation_id = :installationId',
@@ -56,24 +58,48 @@ async function getObservations(
     ScanIndexForward: order == 'descending' ? false : true,
   };
 
-  if (typeof limit !== 'undefined' && limit != null) {
+  if (limit) {
     params.Limit = limit;
   }
 
-  let observations = await dynamoDbClient.send(new QueryCommand(params));
+  let allObservations: { Items: Record<string, any>[]; logs: string } = {
+    Items: [],
+    logs: '',
+  }; // Array to hold all observations
+  let lastEvaluatedKey: any = null; // Variable to track the LastEvaluatedKey
 
-  if (!TierResolver.isAdvancedAnalyticsEnabled(tier)) {
-    observations.Items?.forEach(observation => {
-      observation.zigbee.devices.forEach(device => {
-        delete device.lqi;
-        delete device.battery;
+  do {
+    // If there's a LastEvaluatedKey, add it to the parameters
+    if (lastEvaluatedKey) {
+      params.ExclusiveStartKey = lastEvaluatedKey;
+    }
+
+    let response = await dynamoDbClient.send(new QueryCommand(params));
+
+    // Processing and filtering each batch of items
+    if (!TierResolver.isAdvancedAnalyticsEnabled(tier)) {
+      response.Items?.forEach(observation => {
+        observation.zigbee.devices.forEach(device => {
+          delete device.lqi;
+          delete device.battery;
+        });
       });
-    });
-  }
+    }
 
-  mergeLogsAndDeduplicate(observations);
+    const responseWithLogs = mergeLogsAndDeduplicate(response);
 
-  return observations;
+    // Append the items from this batch to the allObservations array
+
+    if (responseWithLogs.Items) {
+      allObservations.logs += `\n${responseWithLogs.logs}`;
+      allObservations.Items = allObservations.Items.concat(responseWithLogs.Items);
+    }
+
+    // Update the LastEvaluatedKey
+    lastEvaluatedKey = responseWithLogs.LastEvaluatedKey;
+  } while (lastEvaluatedKey); // Continue looping until no more pages
+
+  return allObservations;
 }
 
 type PutObservationRequest = {
@@ -112,7 +138,7 @@ async function putObservation(
       'ascending',
       1000,
     );
-    const sortedObservations = (allObservations.Items ?? []).sort(
+    const sortedObservations = allObservations.Items.sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 
@@ -121,7 +147,7 @@ async function putObservation(
     // Check if we need to delete any old observations
     if (sortedObservations.length > keepObservationCount) {
       const itemsToDelete = sortedObservations
-        .slice(0, keepObservationCount - 1)
+        .slice(keepObservationCount - 1)
         .map(observation => {
           return {
             DeleteRequest: {
@@ -154,7 +180,8 @@ async function putObservation(
       requestData.dangers,
     );
   } catch (error) {
-    throw new FailedToSubmitObservationError('Failed to submit observation');
+    // throw new FailedToSubmitObservationError('Failed to submit observation');
+    throw error;
   }
 }
 

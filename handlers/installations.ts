@@ -9,7 +9,6 @@ import {
   updateInstallationFormSchema,
 } from '../lib/yup/installation-schema';
 import {
-  InstallationLimitError,
   createInstallation,
   deleteInstallation,
   updateInstallation,
@@ -17,6 +16,7 @@ import {
 
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { StatusCodes } from 'http-status-codes';
+import { InstallationLimitError } from '../lib/errors';
 const getLatestRelease = async () => {
   try {
     // Define the parameters to get the record from DynamoDB
