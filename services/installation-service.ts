@@ -9,7 +9,9 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import randomstring from 'randomstring';
 import { v4 } from 'uuid';
 import { encrypt } from '../lib/crypto.js';
+import { Danger } from '../lib/danger.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
+import { InstallationLimitError } from '../lib/errors.js';
 import { Tier, TierResolver } from '../lib/tier-resolver.js';
 
 async function checkInstallation(userId: string, installationId: string) {
@@ -56,7 +58,7 @@ async function getInstallation(
 async function updateInstallationAgentData(
   userId: string,
   installationId: string,
-  dangers: string[],
+  dangers: Danger[],
 ) {
   try {
     const installationParams = {
@@ -186,14 +188,6 @@ type Installation = {
   };
 };
 
-export class InstallationLimitError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'InstallationLimitError';
-    Object.setPrototypeOf(this, InstallationLimitError.prototype);
-  }
-}
-
 async function countUserInstallations(userId: string): Promise<number> {
   const params = {
     TableName: process.env.INSTALLATION_TABLE,
@@ -288,12 +282,14 @@ async function createInstallation(
   return installation;
 }
 
+type DnsVerificationRecord = { subdomain: string; subdomain_value: string };
+
 async function createDnsVerificationRecord(
   installationId: string,
   userId: string,
   type: 'instance',
   instanceUrl: string,
-): Promise<{ subdomain: string; subdomain_value: string }> {
+): Promise<DnsVerificationRecord> {
   const hostName = new URL(instanceUrl).host;
 
   const codeLength = 14;

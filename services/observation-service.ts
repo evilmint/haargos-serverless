@@ -1,6 +1,38 @@
-import { PutCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
+import { BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
+import {
+  PutCommand,
+  QueryCommand,
+  QueryCommandInput,
+  QueryCommandOutput,
+} from '@aws-sdk/lib-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
+import { v4 } from 'uuid';
+import { z } from 'zod';
+import { User } from '../lib/base-request.js';
+import { chunkArray } from '../lib/chunk-array.js';
+import { Danger } from '../lib/danger.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
+import { FailedToSubmitObservationError, UpgradeTierError } from '../lib/errors.js';
 import { Tier, TierResolver } from '../lib/tier-resolver.js';
+import { environmentSchema } from '../lib/yup/observation-schema.js';
+import { updateInstallationAgentData } from './installation-service.js';
+
+function mergeLogsAndDeduplicate(queryResult: QueryCommandOutput) {
+  const logsSet = new Set<string>();
+
+  queryResult.Items?.forEach(item => {
+    const logs = item.logs ? item.logs.split('\n') : [];
+    logs.forEach((log: string) => logsSet.add(log));
+    delete item.logs; // Remove the logs property so that it's not returned to the user
+  });
+
+  const uniqueLogs = Array.from(logsSet).join('\n');
+
+  return {
+    ...queryResult,
+    logs: uniqueLogs,
+  };
+}
 
 async function getObservations(
   tier: Tier,
@@ -39,16 +71,130 @@ async function getObservations(
     });
   }
 
+  mergeLogsAndDeduplicate(observations);
+
   return observations;
 }
 
-async function putObservation(item: any) {
+type PutObservationRequest = {
+  environment: any;
+  installation_id: string;
+  logs: any;
+  userId: string;
+  timestamp: string;
+  dangers: Danger[];
+};
+
+async function putObservation(
+  user: User,
+  agentToken: string,
+  requestData: PutObservationRequest,
+) {
+  if (user.tier === Tier.Expired) {
+    throw new UpgradeTierError('Expired accounts cannot submit observations');
+  }
+
+  requestData.userId = user.userId;
+  requestData.timestamp = new Date().toISOString();
+  requestData.dangers = createDangers(requestData.environment, requestData.logs);
+
   const params = {
     TableName: process.env.OBSERVATION_TABLE,
-    Item: item,
+    Item: { id: v4(), ...requestData },
   };
 
-  await dynamoDbClient.send(new PutCommand(params));
+  try {
+    // Query for all the observations
+    const allObservations = await getObservations(
+      user.tier,
+      user.userId,
+      agentToken,
+      'ascending',
+      1000,
+    );
+    const sortedObservations = (allObservations.Items ?? []).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+
+    const keepObservationCount = TierResolver.getObservationsLimit(user.tier);
+
+    // Check if we need to delete any old observations
+    if (sortedObservations.length > keepObservationCount) {
+      const itemsToDelete = sortedObservations
+        .slice(0, keepObservationCount - 1)
+        .map(observation => {
+          return {
+            DeleteRequest: {
+              Key: marshall({
+                userId: observation.userId,
+                timestamp: observation.timestamp,
+              }),
+            },
+          };
+        });
+
+      const maxBatchItemSize = 25; // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
+      const chunksOfItemsToDelete = chunkArray(itemsToDelete, maxBatchItemSize);
+      for (const chunk of chunksOfItemsToDelete) {
+        const batchDeleteParams = {
+          RequestItems: {
+            [String(process.env.OBSERVATION_TABLE)]: chunk,
+          },
+        };
+
+        await dynamoDbClient.send(new BatchWriteItemCommand(batchDeleteParams));
+      }
+    }
+
+    await dynamoDbClient.send(new PutCommand(params));
+
+    await updateInstallationAgentData(
+      user.userId,
+      requestData.installation_id,
+      requestData.dangers,
+    );
+  } catch (error) {
+    throw new FailedToSubmitObservationError('Failed to submit observation');
+  }
+}
+
+function createDangers(environment: z.infer<typeof environmentSchema>, logs: string[]) {
+  let dangers: Danger[] = [];
+
+  const volumeUsagePercentage =
+    environment.storage?.reduce((highest, current) => {
+      const cur = parseInt(current.use_percentage.slice(0, -1));
+      return cur > highest ? cur : highest;
+    }, 0) ?? 0;
+
+  if (environment.cpu != null) {
+    if (environment.cpu.load > 80) {
+      dangers.push('high_cpu_usage');
+    }
+  }
+
+  if (volumeUsagePercentage > 90) {
+    dangers.push('high_volume_usage');
+  }
+
+  if (environment.memory != null) {
+    const memoryUsagePercentage =
+      (environment.memory.used / environment.memory.total) * 100;
+
+    if (memoryUsagePercentage > 70) {
+      dangers.push('high_memory_usage');
+    }
+  }
+
+  if (logs && logs.includes('ERROR')) {
+    dangers.push('log_errors');
+  }
+
+  if (logs && logs.includes('WARNING')) {
+    dangers.push('log_warnings');
+  }
+
+  return dangers;
 }
 
 export { getObservations, putObservation };
