@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { UpgradeTierError } from '../lib/errors';
-import { TierResolver } from '../lib/tier-resolver';
+import { TierFeatureManager } from '../lib/tier-feature-manager';
 import { observationSchema } from '../lib/yup/observation-schema';
 import { checkInstallation } from '../services/installation-service';
 import { getObservations, putObservation } from '../services/observation-service';
@@ -21,7 +21,7 @@ async function GetObservationsHandler(
       return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid installation.' });
     }
 
-    const fetchLimit = TierResolver.getObservationsLimit(req.user.tier);
+    const fetchLimit = TierFeatureManager.getObservationsLimit(req.user.tier);
     const response = await getObservations(
       req.user.tier,
       req.user.userId,
@@ -37,8 +37,6 @@ async function GetObservationsHandler(
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 }
-
-type ValidatePayload = z.infer<typeof observationSchema>;
 
 async function PostObservationsHandler(
   req: BaseRequest,
@@ -65,7 +63,7 @@ async function PostObservationsHandler(
       return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid installation.' });
     }
 
-    const payload: ValidatePayload = req.body;
+    const payload: z.infer<typeof observationSchema> = req.body;
 
     try {
       observationSchema.parse(payload);

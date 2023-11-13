@@ -1,4 +1,8 @@
-import { DeleteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import {
+  DeleteItemCommand,
+  GetItemCommand,
+  PutItemCommand,
+} from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommandInput,
   QueryCommand,
@@ -9,10 +13,12 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import randomstring from 'randomstring';
 import { v4 } from 'uuid';
 import { encrypt } from '../lib/crypto.js';
-import { Danger } from '../lib/danger.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { InstallationLimitError } from '../lib/errors.js';
-import { Tier, TierResolver } from '../lib/tier-resolver.js';
+import { Installation } from '../lib/models/Installation.js';
+import { Danger } from '../lib/models/danger.js';
+import { DnsVerificationRecord } from '../lib/models/dns-verification-record.js';
+import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
 
 async function checkInstallation(userId: string, installationId: string) {
   const params = {
@@ -31,6 +37,41 @@ async function checkInstallation(userId: string, installationId: string) {
   const response = await dynamoDbClient.send(new QueryCommand(params));
 
   return response.Items && response.Items.length > 0;
+}
+
+const getLatestRelease = async () => {
+  try {
+    // Define the parameters to get the record from DynamoDB
+    const params = {
+      TableName: process.env.CONFIGURATION_TABLE,
+      Key: marshall({
+        id: 'latest_release',
+      }),
+    };
+
+    const command = new GetItemCommand(params);
+    const result = await dynamoDbClient.send(command);
+    const latestRelease = result.Item?.version?.S;
+    return latestRelease;
+  } catch (error) {
+    throw error;
+  }
+};
+
+async function getInstallations(userId: string) {
+  const params = {
+    TableName: process.env.INSTALLATION_TABLE,
+    KeyConditionExpression: '#userId = :userId',
+    ExpressionAttributeNames: {
+      '#userId': 'userId',
+    },
+    ExpressionAttributeValues: {
+      ':userId': userId,
+    },
+  };
+
+  const result: any = await dynamoDbClient.send(new QueryCommand(params));
+  return result;
 }
 
 async function getInstallation(
@@ -168,26 +209,6 @@ async function deleteInstallation(userId: string, installationId: string) {
   }
 }
 
-type Installation = {
-  userId: string;
-  id: string;
-  agent_token: string;
-  issues: string[];
-  health_statuses: string[];
-  last_agent_connection: string | null;
-  name: string;
-  notes: string;
-  urls: {
-    instance: {
-      is_verified: boolean;
-      url: string;
-      verification_status: 'PENDING';
-      subdomain: string;
-      subdomain_value: string;
-    } | null;
-  };
-};
-
 async function countUserInstallations(userId: string): Promise<number> {
   const params = {
     TableName: process.env.INSTALLATION_TABLE,
@@ -212,7 +233,7 @@ async function createInstallation(
   instance: string = '',
   secret: string,
 ) {
-  const maxInstallations = TierResolver.numberOfInstallations(tier);
+  const maxInstallations = TierFeatureManager.numberOfInstallations(tier);
   const currentInstallationCount = await countUserInstallations(userId);
 
   if (currentInstallationCount >= maxInstallations) {
@@ -282,8 +303,6 @@ async function createInstallation(
   return installation;
 }
 
-type DnsVerificationRecord = { subdomain: string; subdomain_value: string };
-
 async function createDnsVerificationRecord(
   installationId: string,
   userId: string,
@@ -323,6 +342,8 @@ export {
   checkInstallation,
   createInstallation,
   deleteInstallation,
+  getInstallations,
+  getLatestRelease,
   updateInstallation,
   updateInstallationAgentData,
 };

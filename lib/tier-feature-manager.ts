@@ -6,7 +6,7 @@ enum Tier {
   Enterprise = 'Enterprise',
 }
 
-class TierResolver {
+class TierFeatureManager {
   private static observationsLimitMap = new Map<Tier, number>([
     [Tier.Expired, 10],
     [Tier.Explorer, 10],
@@ -80,4 +80,4 @@ class TierResolver {
   }
 }
 
-export { Tier, TierResolver };
+export { Tier, TierFeatureManager };

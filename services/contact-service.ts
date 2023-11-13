@@ -10,7 +10,6 @@ export interface Contact {
 export async function postContact(contact: Contact) {
   const id = require('crypto').randomUUID();
 
-  // Create the account in the USERS_TABLE
   const putParams = {
     TableName: process.env.CONTACT_TABLE,
     Item: {

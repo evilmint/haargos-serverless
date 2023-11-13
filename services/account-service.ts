@@ -1,7 +1,7 @@
 import { PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { addNewSub } from '../lib/add-new-sub';
 import { dynamoDbClient } from '../lib/dynamodb';
-import { Tier } from '../lib/tier-resolver';
+import { Tier } from '../lib/tier-feature-manager';
 
 const AuthenticationClient = require('auth0').AuthenticationClient;
 

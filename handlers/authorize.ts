@@ -7,13 +7,13 @@ import { BaseRequest, Subscription, User } from '../lib/base-request';
 import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { dynamoDbClient } from '../lib/dynamodb';
-import { Tier } from '../lib/tier-resolver';
+import { Tier } from '../lib/tier-feature-manager';
 import { fetchSubRecord } from '../services/sub-service';
 import { fetchUserByEmail, fetchUserById } from '../services/user-service';
 
 const AuthenticationClient = require('auth0').AuthenticationClient;
 
-const authorize = async (req: BaseRequest, res: Response, next: NextFunction) => {
+async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
   try {
     const agentToken = req.headers['x-agent-token'];
     var response: any;
@@ -87,7 +87,7 @@ const authorize = async (req: BaseRequest, res: Response, next: NextFunction) =>
       .status(StatusCodes.FORBIDDEN)
       .json({ error: `Could not verify user [error=${error}].` });
   }
-};
+}
 
 function processUser(user: User): User {
   const getMostRecentActiveSubscription = (user: User): Subscription | null => {

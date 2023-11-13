@@ -1,9 +1,6 @@
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { NextFunction, Response } from 'express';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
-import { dynamoDbClient } from '../lib/dynamodb';
 import {
   createInstallationFormSchema,
   updateInstallationFormSchema,
@@ -11,30 +8,50 @@ import {
 import {
   createInstallation,
   deleteInstallation,
+  getInstallations,
+  getLatestRelease,
   updateInstallation,
 } from '../services/installation-service';
 
-import { marshall } from '@aws-sdk/util-dynamodb';
 import { StatusCodes } from 'http-status-codes';
 import { InstallationLimitError } from '../lib/errors';
-const getLatestRelease = async () => {
-  try {
-    // Define the parameters to get the record from DynamoDB
-    const params = {
-      TableName: process.env.CONFIGURATION_TABLE,
-      Key: marshall({
-        id: 'latest_release',
-      }),
-    };
 
-    const command = new GetItemCommand(params);
-    const result = await dynamoDbClient.send(command);
-    const latestRelease = result.Item?.version?.S;
-    return latestRelease;
-  } catch (error) {
-    throw error;
-  }
-};
+interface GetInstallationsResponse {
+  body: GetInstallationsBody;
+}
+
+interface GetInstallationsBody {
+  latest_ha_release: string | null;
+  items: GetInstallationsItem[];
+}
+
+interface GetInstallationsItem {
+  health_statuses: GetInstallationsHealthStatus[];
+  urls: {
+    instance: GetInstallationsInstance;
+  };
+  agent_token: string;
+  issues: string[];
+  userId: string;
+  notes: string;
+  last_agent_connection: string;
+  id: string;
+  name: string;
+}
+
+interface GetInstallationsHealthStatus {
+  is_up: boolean;
+  time: string; // Assuming 'time' is a string since the provided values are not standard numbers.
+  timestamp: string;
+}
+
+interface GetInstallationsInstance {
+  is_verified: boolean;
+  subdomain: string;
+  subdomain_value: string;
+  url: string;
+  verification_status: string;
+}
 
 async function GetInstallationsHandler(
   req: BaseRequest,
@@ -42,23 +59,17 @@ async function GetInstallationsHandler(
   _next: NextFunction,
 ) {
   try {
-    const params = {
-      TableName: process.env.INSTALLATION_TABLE,
-      KeyConditionExpression: '#userId = :userId',
-      ExpressionAttributeNames: {
-        '#userId': 'userId',
-      },
-      ExpressionAttributeValues: {
-        ':userId': req.user.userId,
-      },
-    };
-
-    const response: any = await dynamoDbClient.send(new QueryCommand(params));
     const latestHaRelease = await getLatestRelease();
+    const result = await getInstallations(req.user.userId);
 
-    return res
-      .status(StatusCodes.OK)
-      .json({ body: { latest_ha_release: latestHaRelease, items: response.Items } });
+    const response = {
+      body: {
+        latest_ha_release: latestHaRelease ?? null,
+        items: result.Items,
+      },
+    } as GetInstallationsResponse;
+
+    return res.status(StatusCodes.OK).json(response);
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
@@ -153,5 +164,6 @@ export {
   CreateInstallationHandler,
   DeleteInstallationHandler,
   GetInstallationsHandler,
-  UpdateInstallationHandler,
+  UpdateInstallationHandler
 };
+

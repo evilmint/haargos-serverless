@@ -10,10 +10,10 @@ import { v4 } from 'uuid';
 import { z } from 'zod';
 import { User } from '../lib/base-request.js';
 import { chunkArray } from '../lib/chunk-array.js';
-import { Danger } from '../lib/danger.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { UpgradeTierError } from '../lib/errors.js';
-import { Tier, TierResolver } from '../lib/tier-resolver.js';
+import { Danger } from '../lib/models/danger.js';
+import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
 import { environmentSchema } from '../lib/yup/observation-schema.js';
 import { updateInstallationAgentData } from './installation-service.js';
 
@@ -77,7 +77,7 @@ async function getObservations(
     let response = await dynamoDbClient.send(new QueryCommand(params));
 
     // Processing and filtering each batch of items
-    if (!TierResolver.isAdvancedAnalyticsEnabled(tier)) {
+    if (!TierFeatureManager.isAdvancedAnalyticsEnabled(tier)) {
       response.Items?.forEach(observation => {
         observation.zigbee.devices.forEach(device => {
           delete device.lqi;
@@ -142,7 +142,7 @@ async function putObservation(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 
-    const keepObservationCount = TierResolver.getObservationsLimit(user.tier);
+    const keepObservationCount = TierFeatureManager.getObservationsLimit(user.tier);
 
     // Check if we need to delete any old observations
     if (sortedObservations.length > keepObservationCount) {

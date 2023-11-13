@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { Tier } from './tier-resolver';
+import { Tier } from './tier-feature-manager';
 
 export type Subscription = {
   activated_on: string;

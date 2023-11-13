@@ -1,16 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
-import { User } from '../lib/base-request';
+import { TypedRequestBody } from '../lib/typed-request-body';
 import createAccountSchema from '../lib/yup/account-schema';
 import userSchema from '../lib/yup/user-schema';
 import { createAccount } from '../services/account-service';
 const { deleteAccount, updateAccount } = require('../services/account-service');
-
-interface TypedRequestBody<T> extends Request {
-  body: T;
-  user: User;
-}
 
 export const DeleteAccountHandler = async (
   req: TypedRequestBody<{ user: { userId: string } }>,
