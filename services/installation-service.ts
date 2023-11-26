@@ -15,7 +15,7 @@ import { v4 } from 'uuid';
 import { encrypt } from '../lib/crypto.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { InstallationLimitError } from '../lib/errors.js';
-import { Installation } from '../lib/models/Installation.js';
+import { Installation } from '../lib/models/installation.js';
 import { Danger } from '../lib/models/danger.js';
 import { DnsVerificationRecord } from '../lib/models/dns-verification-record.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
