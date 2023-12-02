@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
+import { maskError } from '../lib/mask-error';
 import { TypedRequestBody } from '../lib/typed-request-body';
 import createAccountSchema from '../lib/yup/account-schema';
 import userSchema from '../lib/yup/user-schema';
@@ -16,7 +17,7 @@ export const DeleteAccountHandler = async (
     return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };
 
@@ -36,7 +37,7 @@ export const UpdateAccountHandler = async (
     return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };
 
@@ -62,6 +63,6 @@ export const CreateAccountHandler = async (
     return res.status(StatusCodes.CREATED).json({ body: user });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };

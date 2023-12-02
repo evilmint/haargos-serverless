@@ -4,4 +4,5 @@ import { User } from './base-request';
 export interface TypedRequestBody<T> extends Request {
   body: T;
   user: User;
+  IN_DEV_STAGE: boolean;
 }

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
+import { maskError } from '../lib/mask-error';
 import { TypedRequestBody } from '../lib/typed-request-body';
 import contactSchema from '../lib/yup/contact-schema';
 import { Contact, postContact } from '../services/contact-service';
@@ -20,6 +21,6 @@ export const PostContactHandler = async (
     return res.status(StatusCodes.OK).json({ body: payload });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };

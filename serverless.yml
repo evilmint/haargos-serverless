@@ -6,7 +6,7 @@ plugins:
   - serverless-plugin-typescript
 custom:
   customDomain:
-    domainName: api.haargos.com
+    domainName: ${env:HAARGOS_API_DOMAIN}
     basePath: ''
     stage: '$default'
     createRoute53Record: true
@@ -20,12 +20,12 @@ custom:
   contactTableName: 'contact-table-${sls:stage}'
   subTableName: 'sub-table-${sls:stage}'
   crypto:
-    key: '793I4BGlD$czvtCWKBDWKy7Og6GgFl^@'
+    key: ${env:CRYPTO_KEY}
   auth0:
-    issuerBaseUrl: 'https://dev-ofc2nc2a0lc4ncig.eu.auth0.com/'
-    audience: 'https://api.haargos.com'
-    domain: 'dev-ofc2nc2a0lc4ncig.eu.auth0.com'
-    clientId: '3EGUK8VIxgWNygQ1My32IIMeFz2KFeXm'
+    issuerBaseUrl: ${env:AUTH0_ISSUER_BASE_URL}
+    audience: ${env:AUTH0_AUDIENCE}
+    domain: ${env:AUTH0_DOMAIN}
+    clientId: ${env:AUTH0_CLIENT_ID}
   maxObservationsKept: 10
   returnObservationCount: 10
 

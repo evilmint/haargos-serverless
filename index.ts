@@ -13,6 +13,7 @@ import {
   DeleteAccountHandler,
   UpdateAccountHandler,
 } from './handlers/account';
+import { GetAgentConfigHandler } from './handlers/config';
 import {
   CreateInstallationHandler,
   DeleteInstallationHandler,
@@ -32,6 +33,8 @@ const jwtCheck = auth({
 app.use(cors());
 app.use(express.json());
 app.use(compressForAWSLambda);
+
+// Web
 app.get('/users/me', [jwtCheck, authorize], UsersMeHandler);
 app.get('/installations', [jwtCheck, authorize], GetInstallationsHandler);
 app.post('/installations', [jwtCheck, authorize], CreateInstallationHandler);
@@ -49,8 +52,12 @@ app.post('/account', [jwtCheck], CreateAccountHandler);
 app.put('/account', [jwtCheck, authorize], UpdateAccountHandler);
 app.delete('/account', [jwtCheck, authorize], DeleteAccountHandler);
 app.get('/observations', [jwtCheck, authorize], GetObservationsHandler);
-app.post('/observations', authorize, PostObservationsHandler);
 app.post('/contact', PostContactHandler);
+
+// Agent
+
+app.get('/agent-config', authorize, GetAgentConfigHandler);
+app.post('/observations', authorize, PostObservationsHandler);
 
 app.use(notFoundHandler);
 

@@ -2,14 +2,14 @@ import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { NextFunction, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { addNewSub } from '../lib/add-new-sub';
 import { BaseRequest, Subscription, User } from '../lib/base-request';
 import { decrypt } from '../lib/crypto';
 import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { dynamoDbClient } from '../lib/dynamodb';
+import { maskError } from '../lib/mask-error';
 import { Tier } from '../lib/tier-feature-manager';
 import { fetchSubRecord } from '../services/sub-service';
-import { fetchUserByEmail, fetchUserById } from '../services/user-service';
+import { fetchUserById } from '../services/user-service';
 
 const AuthenticationClient = require('auth0').AuthenticationClient;
 
@@ -46,35 +46,43 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
         req.user = user;
       } catch {
         // If sub does not exist, fetch user profile and try to fetch user by e-mail
-        try {
-          const auth0 = new AuthenticationClient({
-            domain: process.env.AUTH0_DOMAIN,
-            clientId: process.env.AUTH0_CLIENT_ID,
-          });
+        // Update: Don't do this - this is a security leak unless the e-mail is verified
+        // Else we could log in via e-mail and if it's not verified we could hijack other
+        // accounts for free.
 
-          const userProfile = await auth0.getProfile(req.auth.token);
-          const user = await fetchUserByEmail(userProfile.email);
-
-          // If user is found, add new sub
-          await addNewSub(subIdentifier, user.userId);
-
-          req.user = user;
-        } catch (error) {
-          return res
+        return res
             .status(StatusCodes.FORBIDDEN)
-            .json({ error: 'Invalid authentication token.' });
-        }
+            .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
+  
+        // try {
+        //   const auth0 = new AuthenticationClient({
+        //     domain: process.env.AUTH0_DOMAIN,
+        //     clientId: process.env.AUTH0_CLIENT_ID,
+        //   });
+
+        //   const userProfile = await auth0.getProfile(req.auth.token);
+        //   const user = await fetchUserByEmail(userProfile.email);
+
+        //   // If user is found, add new sub
+        //   await addNewSub(subIdentifier, user.userId);
+
+        //   req.user = user;
+        // } catch (error) {
+        //   return res
+        //     .status(StatusCodes.FORBIDDEN)
+        //     .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
+        // }
       }
     } else {
       return res
         .status(StatusCodes.FORBIDDEN)
-        .json({ error: 'Invalid authentication token.' });
+        .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
     }
 
     if (!req.user.active) {
       return res
         .status(StatusCodes.FORBIDDEN)
-        .json({ error: 'Invalid authentication token.' });
+        .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
     }
 
     req.IN_DEV_STAGE = process.env.SLS_STAGE === 'dev';
@@ -85,7 +93,7 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
     console.error('Error verifying user:', error);
     return res
       .status(StatusCodes.FORBIDDEN)
-      .json({ error: `Could not verify user [error=${error}].` });
+      .json({ error: maskError(`Could not verify user [error=${error}].`, req.IN_DEV_STAGE) });
   }
 }
 

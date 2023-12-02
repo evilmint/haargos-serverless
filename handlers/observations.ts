@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { UpgradeTierError } from '../lib/errors';
+import { maskError } from '../lib/mask-error';
 import { TierFeatureManager } from '../lib/tier-feature-manager';
 import { observationSchema } from '../lib/yup/observation-schema';
 import { checkInstallation } from '../services/installation-service';
@@ -34,7 +35,7 @@ async function GetObservationsHandler(
       body: response,
     });
   } catch (error) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 }
 
@@ -68,11 +69,7 @@ async function PostObservationsHandler(
     try {
       observationSchema.parse(payload);
     } catch (error) {
-      if (req.IN_DEV_STAGE) {
-        return res.status(StatusCodes.BAD_REQUEST).json({ error: error });
-      } else {
-        return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
-      }
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: maskError(error, req.IN_DEV_STAGE) });
     }
 
     putObservation(req.user, req.agentToken['installation_id'], requestData);
@@ -82,17 +79,12 @@ async function PostObservationsHandler(
         .status(StatusCodes.CONFLICT)
         .json({ error: 'Expired accounts cannot submit observations' });
     } else if (error.name === 'ValidationError') {
-      const validationErrors = error.errors; // TODO: Don't print when not in debug
-
-      if (req.IN_DEV_STAGE) {
-        return res.status(StatusCodes.BAD_REQUEST).json({ error: validationErrors });
-      } else {
-        return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
-      }
+      const validationErrors = error.errors;
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: maskError(validationErrors, req.IN_DEV_STAGE) });
     } else {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ error: 'Could not insert observation data [error=' + error + '].' });
+        .json({ error: maskError('Could not insert observation data [error=' + error + '].', req.IN_DEV_STAGE) });
     }
   }
 }
