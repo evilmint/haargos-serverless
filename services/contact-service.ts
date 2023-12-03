@@ -5,6 +5,7 @@ export interface Contact {
   name: string;
   email: string;
   message: string;
+  type: 'contact';
 }
 
 export async function postContact(contact: Contact) {
@@ -14,9 +15,7 @@ export async function postContact(contact: Contact) {
     TableName: process.env.CONTACT_TABLE,
     Item: {
       id: id,
-      email: contact.email,
-      message: contact.message,
-      name: contact.name,
+      ...contact
     },
   };
   await dynamoDbClient.send(new PutCommand(putParams));

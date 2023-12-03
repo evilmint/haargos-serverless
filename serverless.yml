@@ -97,6 +97,7 @@ provider:
           Action:
             - dynamodb:Query
             - dynamodb:PutItem
+            - dynamodb:UpdateItem
           Resource:
             - Fn::GetAtt: [SubTable, Arn]
 
@@ -134,7 +135,7 @@ provider:
     RETURN_OBSERVATION_COUNT: ${self:custom.returnObservationCount}
 
     # Misc
-    SLS_STAGE: ${opt:stage, 'dev'}
+    SLS_STAGE: ${sls:stage}
 
 functions:
   api:

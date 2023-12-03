@@ -82,7 +82,6 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
   try {
     const userProfile = await auth0.getProfile(token);
     const email = userProfile.email;
-    const active = userProfile.email_verified;
 
     // Check if a user with this email already exists
     const queryParams = {
@@ -116,7 +115,7 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
       Item: {
         userId: userId,
         secret: require('crypto').randomUUID(),
-        active: active,
+        active: true,
         subscriptions: [
           {
             activated_on: activatedOn,

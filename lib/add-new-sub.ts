@@ -8,6 +8,7 @@ async function addNewSub(sub: string, userId: string): Promise<any> {
     Item: marshall({
       sub: sub,
       user_id: userId,
+      email_verified: false,
     }),
   };
 

@@ -2,7 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { auth } from 'express-oauth2-jwt-bearer';
 import serverless from 'serverless-http';
-import { authorize } from './handlers/authorize';
+import { assignEnvironments, authorize } from './handlers/authorize';
 import { PostContactHandler } from './handlers/contact';
 import { notFoundHandler } from './handlers/not-found';
 import { UsersMeHandler } from './handlers/users';
@@ -48,7 +48,7 @@ app.delete(
   [jwtCheck, authorize],
   DeleteInstallationHandler,
 );
-app.post('/account', [jwtCheck], CreateAccountHandler);
+app.post('/account', [jwtCheck, assignEnvironments], CreateAccountHandler);
 app.put('/account', [jwtCheck, authorize], UpdateAccountHandler);
 app.delete('/account', [jwtCheck, authorize], DeleteAccountHandler);
 app.get('/observations', [jwtCheck, authorize], GetObservationsHandler);

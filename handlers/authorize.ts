@@ -8,11 +8,17 @@ import { decodeAuth0JWT } from '../lib/decode-auth0-jwt';
 import { dynamoDbClient } from '../lib/dynamodb';
 import { maskError } from '../lib/mask-error';
 import { Tier } from '../lib/tier-feature-manager';
-import { fetchSubRecord } from '../services/sub-service';
+import { fetchSubRecord, verifySubEmail } from '../services/sub-service';
 import { fetchUserById } from '../services/user-service';
+
+import { UserData } from 'auth0';
 
 const AuthenticationClient = require('auth0').AuthenticationClient;
 
+async function assignEnvironments(req: BaseRequest, res: Response, next: NextFunction) {
+  req.IN_DEV_STAGE = process.env.SLS_STAGE == 'dev';
+  next();
+}
 async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
   try {
     const agentToken = req.headers['x-agent-token'];
@@ -42,7 +48,26 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
 
       try {
         const subRecord = await fetchSubRecord(subIdentifier);
+
+        if (subRecord.email_verified !== true) {
+          const auth0 = new AuthenticationClient({
+            domain: process.env.AUTH0_DOMAIN,
+            clientId: process.env.AUTH0_CLIENT_ID,
+          });
+
+          const userProfile: UserData = await auth0.getProfile(req.auth.token);
+
+          if (userProfile.email_verified) {
+            verifySubEmail(subIdentifier);
+          } else {
+            return res
+              .status(StatusCodes.FORBIDDEN)
+              .json({ body: 'Email not verified.' });
+          }
+        }
+
         const user = await fetchUserById(subRecord.userId);
+
         req.user = user;
       } catch {
         // If sub does not exist, fetch user profile and try to fetch user by e-mail
@@ -51,9 +76,9 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
         // accounts for free.
 
         return res
-            .status(StatusCodes.FORBIDDEN)
-            .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
-  
+          .status(StatusCodes.FORBIDDEN)
+          .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
+
         // try {
         //   const auth0 = new AuthenticationClient({
         //     domain: process.env.AUTH0_DOMAIN,
@@ -85,15 +110,15 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
         .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
     }
 
-    req.IN_DEV_STAGE = process.env.SLS_STAGE === 'dev';
+    req.IN_DEV_STAGE = process.env.SLS_STAGE == 'dev';
     req.user = processUser(req.user);
 
     next();
   } catch (error) {
     console.error('Error verifying user:', error);
-    return res
-      .status(StatusCodes.FORBIDDEN)
-      .json({ error: maskError(`Could not verify user [error=${error}].`, req.IN_DEV_STAGE) });
+    return res.status(StatusCodes.FORBIDDEN).json({
+      error: maskError(`Could not verify user [error=${error}].`, req.IN_DEV_STAGE),
+    });
   }
 }
 
@@ -117,4 +142,4 @@ function processUser(user: User): User {
   return newUser;
 }
 
-export { authorize };
+export { assignEnvironments, authorize };
