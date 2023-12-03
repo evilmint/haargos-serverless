@@ -47,6 +47,12 @@ export const CreateAccountHandler = async (
   req: TypedRequestBody<{ userFullName: string }>,
   res: Response,
 ) => {
+  const isDevelopmentRegisterPossible = req.body.userFullName.toLocaleLowerCase().startsWith('apfel');
+
+  if (req.IN_DEV_STAGE && !isDevelopmentRegisterPossible) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError('Not allowed', req.IN_DEV_STAGE) });
+  }
+
   try {
     const payload: CreateValidatePayload = req.body;
     createAccountSchema.parse(payload);
