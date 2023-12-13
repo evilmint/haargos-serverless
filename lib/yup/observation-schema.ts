@@ -18,6 +18,7 @@ const zigbeeDeviceSchema = z
     ieee: z.string().max(64),
     brand: z.string().max(64),
     entity_name: z.string().max(64),
+    device_id: z.string().max(64),
     last_updated: z.string().max(64),
     lqi: z.number(),
     integration_type: z.string().max(32),
@@ -117,6 +118,7 @@ const automationsSchema = z
 const scriptsSchema = z
   .object({
     alias: z.string().max(64),
+    unique_id: z.string().max(64).optional(),
     last_triggered: z.string().max(64).nullable(),
     friendly_name: z.string().max(255).nullable(),
     state: z.string().max(64).nullable(),

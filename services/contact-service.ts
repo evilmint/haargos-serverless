@@ -5,7 +5,6 @@ export interface Contact {
   name: string;
   email: string;
   message: string;
-  type: 'contact';
 }
 
 export async function postContact(contact: Contact) {
