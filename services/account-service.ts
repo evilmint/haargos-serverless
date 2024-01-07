@@ -134,7 +134,7 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
     const user = {
       userId: userId,
       //secret: putParams.Item.secret.S,
-      active: active,
+      active: true,
       subscriptions: [],
       email: email,
       full_name: fullName,

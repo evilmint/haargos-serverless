@@ -14,6 +14,8 @@ async function GetObservationsHandler(
   res: Response,
   _next: NextFunction,
 ) {
+  req.IN_DEV_STAGE = process.env.SLS_STAGE == 'dev';
+
   try {
     const installationId = req.query.installation_id ?? '0';
     const isInstallationValid = await checkInstallation(req.user.userId, installationId);
@@ -35,7 +37,9 @@ async function GetObservationsHandler(
       body: response,
     });
   } catch (error) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, true) });
   }
 }
 
@@ -45,6 +49,7 @@ async function PostObservationsHandler(
   _next: NextFunction,
 ) {
   try {
+    // Move this to separate agent authorizer and create an AgentRequest to stuff this data into
     if (!req.agentToken) {
       return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
     }
@@ -69,7 +74,9 @@ async function PostObservationsHandler(
     try {
       observationSchema.parse(payload);
     } catch (error) {
-      return res.status(StatusCodes.BAD_REQUEST).json({ error: maskError(error, req.IN_DEV_STAGE) });
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ error: maskError(error, req.IN_DEV_STAGE) });
     }
 
     putObservation(req.user, req.agentToken['installation_id'], requestData);
@@ -80,11 +87,18 @@ async function PostObservationsHandler(
         .json({ error: 'Expired accounts cannot submit observations' });
     } else if (error.name === 'ValidationError') {
       const validationErrors = error.errors;
-      return res.status(StatusCodes.BAD_REQUEST).json({ error: maskError(validationErrors, req.IN_DEV_STAGE) });
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ error: maskError(validationErrors, req.IN_DEV_STAGE) });
     } else {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ error: maskError('Could not insert observation data [error=' + error + '].', req.IN_DEV_STAGE) });
+        .json({
+          error: maskError(
+            'Could not insert observation data [error=' + error + '].',
+            req.IN_DEV_STAGE,
+          ),
+        });
     }
   }
 }

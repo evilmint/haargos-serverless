@@ -42,7 +42,7 @@ async function getObservations(
   installationId: string,
   order: 'ascending' | 'descending',
   limit: number | null,
-): Promise<{ Items: Record<string, any>[]; logs: string }> {
+): Promise<{ Items: Record<string, any>[] }> {
   let params: QueryCommandInput = {
     TableName: String(process.env.OBSERVATION_TABLE),
     KeyConditionExpression: '#userId = :userId AND #installation_id = :installationId',
@@ -62,14 +62,13 @@ async function getObservations(
     params.Limit = limit;
   }
 
-  let allObservations: { Items: Record<string, any>[]; logs: string } = {
+  let allObservations: { Items: Record<string, any>[] } = {
     Items: [],
-    logs: '',
-  }; // Array to hold all observations
-  let lastEvaluatedKey: any = null; // Variable to track the LastEvaluatedKey
+  };
+
+  let lastEvaluatedKey: any = null;
 
   do {
-    // If there's a LastEvaluatedKey, add it to the parameters
     if (lastEvaluatedKey) {
       params.ExclusiveStartKey = lastEvaluatedKey;
     }
@@ -86,17 +85,17 @@ async function getObservations(
       });
     }
 
-    const responseWithLogs = mergeLogsAndDeduplicate(response);
+    //const responseWithLogs = mergeLogsAndDeduplicate(response);
 
     // Append the items from this batch to the allObservations array
 
-    if (responseWithLogs.Items) {
-      allObservations.logs += `\n${responseWithLogs.logs}`;
-      allObservations.Items = allObservations.Items.concat(responseWithLogs.Items);
+    if (response.Items) {
+      //allObservations.logs += `\n${responseWithLogs.logs}`;
+      allObservations.Items = allObservations.Items.concat(response.Items);
     }
 
     // Update the LastEvaluatedKey
-    lastEvaluatedKey = responseWithLogs.LastEvaluatedKey;
+    lastEvaluatedKey = response.LastEvaluatedKey;
   } while (lastEvaluatedKey); // Continue looping until no more pages
 
   return allObservations;

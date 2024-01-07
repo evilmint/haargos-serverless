@@ -20,6 +20,11 @@ import {
   GetInstallationsHandler,
   UpdateInstallationHandler,
 } from './handlers/installations';
+import {
+  GetInstallationLogsHandler,
+  UpdateInstallationLogsHandler,
+} from './handlers/logs';
+
 import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
 
 const app = express();
@@ -36,6 +41,8 @@ app.use(compressForAWSLambda);
 
 // Web
 app.get('/users/me', [jwtCheck, authorize], UsersMeHandler);
+app.get('/installations/logs/:type', authorize, GetInstallationLogsHandler);
+app.put('/installations/logs', authorize, UpdateInstallationLogsHandler);
 app.get('/installations', [jwtCheck, authorize], GetInstallationsHandler);
 app.post('/installations', [jwtCheck, authorize], CreateInstallationHandler);
 app.put(

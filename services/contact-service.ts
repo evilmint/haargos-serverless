@@ -14,7 +14,7 @@ export async function postContact(contact: Contact) {
     TableName: process.env.CONTACT_TABLE,
     Item: {
       id: id,
-      ...contact
+      ...contact,
     },
   };
   await dynamoDbClient.send(new PutCommand(putParams));

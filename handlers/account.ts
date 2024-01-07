@@ -17,7 +17,9 @@ export const DeleteAccountHandler = async (
     return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };
 
@@ -37,7 +39,9 @@ export const UpdateAccountHandler = async (
     return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };
 
@@ -47,10 +51,14 @@ export const CreateAccountHandler = async (
   req: TypedRequestBody<{ userFullName: string }>,
   res: Response,
 ) => {
-  const isDevelopmentRegisterPossible = req.body.userFullName.toLocaleLowerCase().startsWith('apfel');
+  const isDevelopmentRegisterPossible = req.body.userFullName
+    .toLocaleLowerCase()
+    .startsWith('apfel');
 
   if (req.IN_DEV_STAGE && !isDevelopmentRegisterPossible) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError('Not allowed', req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError('Not allowed', req.IN_DEV_STAGE) });
   }
 
   try {
@@ -69,6 +77,8 @@ export const CreateAccountHandler = async (
     return res.status(StatusCodes.CREATED).json({ body: user });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };

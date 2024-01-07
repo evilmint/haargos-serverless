@@ -31,7 +31,7 @@ export async function verifySubEmail(sub: string) {
   try {
     const updateParams = {
       TableName: process.env.SUB_TABLE,
-      Key: { sub: sub},
+      Key: { sub: sub },
       UpdateExpression: 'SET #email_verified = :email_verified',
       ExpressionAttributeNames: {
         '#email_verified': 'email_verified',

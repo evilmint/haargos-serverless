@@ -72,7 +72,9 @@ async function GetInstallationsHandler(
 
     return res.status(StatusCodes.OK).json(response);
   } catch (error) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 }
 
@@ -118,7 +120,9 @@ const CreateInstallationHandler = async (
     }
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };
 
@@ -132,7 +136,9 @@ const DeleteInstallationHandler = async (
     return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };
 
@@ -157,7 +163,9 @@ const UpdateInstallationHandler = async (
     return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: maskError(error, req.IN_DEV_STAGE) });
   }
 };
 
@@ -165,6 +173,5 @@ export {
   CreateInstallationHandler,
   DeleteInstallationHandler,
   GetInstallationsHandler,
-  UpdateInstallationHandler
+  UpdateInstallationHandler,
 };
-

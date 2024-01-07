@@ -15,9 +15,9 @@ import { v4 } from 'uuid';
 import { encrypt } from '../lib/crypto.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { InstallationLimitError } from '../lib/errors.js';
-import { Installation } from '../lib/models/installation.js';
 import { Danger } from '../lib/models/danger.js';
 import { DnsVerificationRecord } from '../lib/models/dns-verification-record.js';
+import { Installation } from '../lib/models/installation.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
 
 async function checkInstallation(userId: string, installationId: string) {
@@ -160,19 +160,7 @@ async function updateInstallation(
     };
 
     // If the supplied URL is different from the stored one, update the URL and its related fields
-    if (
-      currentInstallation &&
-      currentInstallation.urls &&
-      currentInstallation.urls.instance &&
-      currentInstallation.urls.instance.url !== url
-    ) {
-      const { subdomain, subdomain_value } = await createDnsVerificationRecord(
-        installationId,
-        userId,
-        'instance',
-        url,
-      );
-
+    if (currentInstallation?.urls?.instance?.url !== url) {
       installationParams.UpdateExpression +=
         ', #urls.#instance.#url = :url, #urls.#instance.is_verified = :is_verified, #urls.#instance.verification_status = :verification_status, #urls.#instance.subdomain = :subdomain, #urls.#instance.subdomain_value = :subdomain_value';
 
@@ -180,14 +168,30 @@ async function updateInstallation(
       installationParams.ExpressionAttributeNames!['#url'] = 'url';
       installationParams.ExpressionAttributeNames!['#instance'] = 'instance';
 
-      installationParams.ExpressionAttributeValues![':url'] = url;
-      installationParams.ExpressionAttributeValues![':verification_status'] = 'PENDING';
-      installationParams.ExpressionAttributeValues![':is_verified'] = false;
-      installationParams.ExpressionAttributeValues![':subdomain'] = subdomain;
-      installationParams.ExpressionAttributeValues![':subdomain_value'] = subdomain_value;
-    }
+      if (url.trim() === '') {
+        installationParams.ExpressionAttributeValues![':url'] = '';
+        installationParams.ExpressionAttributeValues![':verification_status'] = 'EMPTY';
+        installationParams.ExpressionAttributeValues![':subdomain'] = '';
+        installationParams.ExpressionAttributeValues![':subdomain_value'] = '';
+      } else {
+        const { subdomain, subdomain_value } = await createDnsVerificationRecord(
+          installationId,
+          userId,
+          'instance',
+          url,
+        );
 
-    await dynamoDbClient.send(new UpdateCommand(installationParams));
+        installationParams.ExpressionAttributeValues![':url'] = url;
+        installationParams.ExpressionAttributeValues![':verification_status'] = 'PENDING';
+        installationParams.ExpressionAttributeValues![':subdomain'] = subdomain;
+        installationParams.ExpressionAttributeValues![':subdomain_value'] =
+          subdomain_value;
+      }
+
+      installationParams.ExpressionAttributeValues![':is_verified'] = false;
+
+      await dynamoDbClient.send(new UpdateCommand(installationParams));
+    }
   } catch (error) {
     throw new Error('Failed to update installation: ' + error.message);
   }
@@ -280,6 +284,14 @@ async function createInstallation(
         verification_status: 'PENDING',
         subdomain: subdomain,
         subdomain_value: subdomain_value,
+      },
+    };
+  } else {
+    installation.urls = {
+      instance: {
+        is_verified: false,
+        url: '',
+        verification_status: 'EMPTY',
       },
     };
   }

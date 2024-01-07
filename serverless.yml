@@ -14,6 +14,7 @@ custom:
     apiType: http
   userTableName: 'user-table-${sls:stage}'
   observationDataTableName: 'observations-table-${sls:stage}'
+  logsDataTableName: 'log-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
   dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
@@ -61,6 +62,7 @@ provider:
           Resource:
             - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self.custom.logsDataTableName}/index/*
 
         - Effect: Allow
           Action:
@@ -104,6 +106,13 @@ provider:
         - Effect: Allow
           Action:
             - dynamodb:Query
+            - dynamodb:PutItem
+          Resource:
+            - Fn::GetAtt: [LogTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
             - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
@@ -115,6 +124,7 @@ provider:
     # Tables
     USERS_TABLE: ${self:custom.userTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
+    LOGS_TABLE: ${self:custom.logsDataTableName}
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
     DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
@@ -215,6 +225,22 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    LogTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.logsDataTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+          - AttributeName: type
+            AttributeType: S
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+          - AttributeName: type
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
 
     InstallationTable:

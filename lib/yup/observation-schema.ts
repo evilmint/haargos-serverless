@@ -138,7 +138,9 @@ const observationSchema = z
   .object({
     installation_id: z.string().max(64),
     agent_version: z.string().max(32),
-    agent_type: z.union([z.literal('bin'), z.literal('addon'), z.literal('docker')]).optional(),
+    agent_type: z
+      .union([z.literal('bin'), z.literal('addon'), z.literal('docker')])
+      .optional(),
     docker: z
       .object({
         containers: z.array(containerSchema).max(32),
