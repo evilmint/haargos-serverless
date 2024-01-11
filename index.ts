@@ -25,6 +25,11 @@ import {
   UpdateInstallationLogsHandler,
 } from './handlers/logs';
 
+import {
+  GetInstallationNotificationsHandler,
+  UpdateInstallationNotificationsHandler,
+} from './handlers/notifications';
+
 import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
 
 const app = express();
@@ -39,12 +44,27 @@ app.use(cors());
 app.use(express.json());
 app.use(compressForAWSLambda);
 
+app.put(
+  '/installations/notifications',
+  authorize,
+  UpdateInstallationNotificationsHandler,
+);
+app.put('/installations/logs', authorize, UpdateInstallationLogsHandler);
+
 // Web
 app.get('/users/me', [jwtCheck, authorize], UsersMeHandler);
-app.get('/installations/logs/:type', authorize, GetInstallationLogsHandler);
-app.put('/installations/logs', authorize, UpdateInstallationLogsHandler);
 app.get('/installations', [jwtCheck, authorize], GetInstallationsHandler);
 app.post('/installations', [jwtCheck, authorize], CreateInstallationHandler);
+app.get(
+  '/installations/:installationId/logs/:type',
+  [jwtCheck, authorize],
+  GetInstallationLogsHandler,
+);
+app.get(
+  '/installations/:installationId/notifications',
+  [jwtCheck, authorize],
+  GetInstallationNotificationsHandler,
+);
 app.put(
   '/installations/:installationId',
   [jwtCheck, authorize],

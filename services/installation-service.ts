@@ -189,9 +189,9 @@ async function updateInstallation(
       }
 
       installationParams.ExpressionAttributeValues![':is_verified'] = false;
-
-      await dynamoDbClient.send(new UpdateCommand(installationParams));
     }
+
+    await dynamoDbClient.send(new UpdateCommand(installationParams));
   } catch (error) {
     throw new Error('Failed to update installation: ' + error.message);
   }
@@ -303,7 +303,7 @@ async function createInstallation(
 
   await dynamoDbClient.send(new PutItemCommand(params));
 
-  if (installation.urls.instance) {
+  if (installation.urls.instance && installation.urls.instance?.url.trim() !== '') {
     await createDnsVerificationRecord(
       installation.id,
       userId,

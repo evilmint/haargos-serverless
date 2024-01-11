@@ -17,7 +17,7 @@ export async function fetchUserById(userId: string): Promise<User> {
   const userResponse = await dynamoDbClient.send(new QueryCommand(userParams));
 
   if (!userResponse.Items || userResponse.Items.length == 0) {
-    throw new Error('Invalid authentication token.');
+    throw new Error('Could not fetch user by id.');
   }
 
   return userResponse.Items[0] as User;

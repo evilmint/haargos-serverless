@@ -24,7 +24,10 @@ export async function fetchSubRecord(sub: string): Promise<SubRecord> {
     throw new Error('Invalid authentication token');
   }
 
-  return { userId: response.Items[0].user_id } as SubRecord;
+  return {
+    userId: response.Items[0].user_id,
+    email_verified: response.Items[0].email_verified,
+  } as SubRecord;
 }
 
 export async function verifySubEmail(sub: string) {

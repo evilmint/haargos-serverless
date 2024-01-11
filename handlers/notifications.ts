@@ -3,26 +3,29 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
-import { updateLogsSchema } from '../lib/yup/logs-schema';
-import { fetchLogByInstallationIdAndType, updateLogs } from '../services/log-service';
+import { updateNotificationsSchema } from '../lib/yup/notifications-schema';
+import {
+  fetchNotificationsByInstallationId,
+  updateNotifications,
+} from '../services/notification-service';
 
-const UpdateInstallationLogsHandler = async (
+const UpdateInstallationNotificationsHandler = async (
   req: BaseRequest,
   res: Response,
   _next: NextFunction,
 ) => {
-  type ValidatePayload = z.infer<typeof updateLogsSchema>;
+  type ValidatePayload = z.infer<typeof updateNotificationsSchema>;
 
   try {
     let payload: ValidatePayload = req.body;
 
-    updateLogsSchema.parse(payload);
+    updateNotificationsSchema.parse(payload);
 
     if (!req.agentToken) {
       return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
     }
 
-    await updateLogs(req.agentToken['installation_id'], payload.type, payload.content);
+    await updateNotifications(req.agentToken['installation_id'], payload.notifications);
 
     return res.status(StatusCodes.NO_CONTENT).json();
   } catch (error) {
@@ -33,17 +36,17 @@ const UpdateInstallationLogsHandler = async (
   }
 };
 
-const GetInstallationLogsHandler = async (
+const GetInstallationNotificationsHandler = async (
   req: BaseRequest,
   res: Response,
   _next: NextFunction,
 ) => {
-  const logType = req.params.type;
-  const log = await fetchLogByInstallationIdAndType(req.params.installationId, logType);
+  const notifications =
+    (await fetchNotificationsByInstallationId(req.params.installationId)) ?? [];
 
   return res.status(StatusCodes.OK).json({
-    body: { content: log?.content ?? '' },
+    body: { notifications: notifications },
   });
 };
 
-export { GetInstallationLogsHandler, UpdateInstallationLogsHandler };
+export { GetInstallationNotificationsHandler, UpdateInstallationNotificationsHandler };

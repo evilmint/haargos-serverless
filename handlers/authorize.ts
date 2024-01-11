@@ -19,6 +19,7 @@ async function assignEnvironments(req: BaseRequest, res: Response, next: NextFun
   req.IN_DEV_STAGE = process.env.SLS_STAGE == 'dev';
   next();
 }
+
 async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
   try {
     const agentToken = req.headers['x-agent-token'];
@@ -69,7 +70,7 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
         const user = await fetchUserById(subRecord.userId);
 
         req.user = user;
-      } catch {
+      } catch (error) {
         // If sub does not exist, fetch user profile and try to fetch user by e-mail
         // Update: Don't do this - this is a security leak unless the e-mail is verified
         // Else we could log in via e-mail and if it's not verified we could hijack other
@@ -77,7 +78,7 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
 
         return res
           .status(StatusCodes.FORBIDDEN)
-          .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
+          .json({ error: `Invalid authentication token [error=${error}].` });
 
         // try {
         //   const auth0 = new AuthenticationClient({
@@ -101,13 +102,16 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
     } else {
       return res
         .status(StatusCodes.FORBIDDEN)
-        .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
+        .json({
+          error: maskError(
+            'Invalid authentication token - no auth & token set.',
+            req.IN_DEV_STAGE,
+          ),
+        });
     }
 
     if (!req.user.active) {
-      return res
-        .status(StatusCodes.FORBIDDEN)
-        .json({ error: maskError('Invalid authentication token.', req.IN_DEV_STAGE) });
+      return res.status(StatusCodes.FORBIDDEN).json({ error: 'User inactive.' });
     }
 
     req.IN_DEV_STAGE = process.env.SLS_STAGE == 'dev';
@@ -117,7 +121,7 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
   } catch (error) {
     console.error('Error verifying user:', error);
     return res.status(StatusCodes.FORBIDDEN).json({
-      error: maskError(`Could not verify user [error=${error}].`, req.IN_DEV_STAGE),
+      error: `Could not verify user [error=${error}].`,
     });
   }
 }

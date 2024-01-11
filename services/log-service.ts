@@ -47,41 +47,58 @@ export async function updateLogs(
   daysToKeep: number = 3,
   includeOnlyErrors: boolean = true,
 ) {
-  const log = await fetchLogByInstallationIdAndType(installationId, type);
+  if (type == 'core') {
+    const log = await fetchLogByInstallationIdAndType(installationId, type);
 
-  const oldContent = log?.content ?? '';
-  const logsSet = new Set<string>();
+    const oldContent = log?.content ?? '';
+    const logsSet = new Set<string>();
 
-  const logs = oldContent.split('\n').concat(newContent.split('\n'));
-  logs.forEach(log => logsSet.add(log));
+    const logs = oldContent.split('\n').concat(newContent.split('\n'));
+    logs.forEach(log => logsSet.add(log));
 
-  const currentDate = new Date();
+    const currentDate = new Date();
 
-  const processedLogs = Array.from(logsSet).filter(logEntry => {
-    // Get date part of the log, e.g. 2024-01-03
-    const logDate = new Date(logEntry.split(' ')[0]);
-    const logAgeDays = (currentDate.getTime() - logDate.getTime()) / (1000 * 3600 * 24);
-    const isRecent = logAgeDays <= daysToKeep;
+    const processedLogs = Array.from(logsSet).filter(logEntry => {
+      // Get date part of the log, e.g. 2024-01-03
+      const logDate = new Date(logEntry.split(' ')[0]);
+      const logAgeDays = (currentDate.getTime() - logDate.getTime()) / (1000 * 3600 * 24);
+      const isRecent = logAgeDays <= daysToKeep;
 
-    const isLogTypeValid = includeOnlyErrors ? logEntry.includes('ERROR') : true;
+      const isLogTypeValid = includeOnlyErrors ? logEntry.includes('ERROR') : true;
 
-    return isRecent && isLogTypeValid;
-  });
+      return isRecent && isLogTypeValid;
+    });
 
-  const processedLogsString = processedLogs.join('\n');
+    const processedLogsString = processedLogs.join('\n');
 
-  const upsertParams = {
-    TableName: process.env.LOGS_TABLE,
-    Item: {
-      installation_id: installationId,
-      type: type,
-      content: processedLogsString,
-    },
-  };
+    const upsertParams = {
+      TableName: process.env.LOGS_TABLE,
+      Item: {
+        installation_id: installationId,
+        type: type,
+        content: processedLogsString,
+      },
+    };
 
-  try {
-    await dynamoDbClient.send(new PutCommand(upsertParams));
-  } catch (error) {
-    throw error;
+    try {
+      await dynamoDbClient.send(new PutCommand(upsertParams));
+    } catch (error) {
+      throw error;
+    }
+  } else {
+    const upsertParams = {
+      TableName: process.env.LOGS_TABLE,
+      Item: {
+        installation_id: installationId,
+        type: type,
+        content: newContent,
+      },
+    };
+
+    try {
+      await dynamoDbClient.send(new PutCommand(upsertParams));
+    } catch (error) {
+      throw error;
+    }
   }
 }

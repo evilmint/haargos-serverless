@@ -163,9 +163,7 @@ const UpdateInstallationHandler = async (
     return res.status(StatusCodes.OK).json({ success: true });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: maskError(error, req.IN_DEV_STAGE) });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 

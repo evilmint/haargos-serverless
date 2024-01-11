@@ -15,6 +15,7 @@ custom:
   userTableName: 'user-table-${sls:stage}'
   observationDataTableName: 'observations-table-${sls:stage}'
   logsDataTableName: 'log-table-${sls:stage}'
+  notificationsTableName: 'notification-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
   dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
@@ -60,9 +61,10 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
           Resource:
+            - arn:aws:dynamodb:*:*:table/${self:custom.notificationsTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*
-            - arn:aws:dynamodb:*:*:table/${self.custom.logsDataTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.logsDataTableName}/index/*
 
         - Effect: Allow
           Action:
@@ -113,6 +115,14 @@ provider:
         - Effect: Allow
           Action:
             - dynamodb:Query
+            - dynamodb:PutItem
+            - dynamodb:BatchWriteItem
+          Resource:
+            - Fn::GetAtt: [NotificationTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
             - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
@@ -125,6 +135,7 @@ provider:
     USERS_TABLE: ${self:custom.userTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
     LOGS_TABLE: ${self:custom.logsDataTableName}
+    NOTIFICATION_TABLE: ${self:custom.notificationsTableName}
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
     DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
@@ -241,6 +252,29 @@ resources:
             KeyType: HASH
           - AttributeName: type
             KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    NotificationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.notificationsTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+          - AttributeName: created_at
+            AttributeType: S
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+          - AttributeName: created_at
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: installationId-index
+            KeySchema:
+              - AttributeName: installation_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
     InstallationTable:
