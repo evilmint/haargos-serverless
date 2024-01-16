@@ -16,6 +16,7 @@ custom:
   observationDataTableName: 'observations-table-${sls:stage}'
   logsDataTableName: 'log-table-${sls:stage}'
   notificationsTableName: 'notification-table-${sls:stage}'
+  addonsTableName: 'addons-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
   dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
@@ -62,6 +63,7 @@ provider:
             - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:*:*:table/${self:custom.notificationsTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.addonsTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.logsDataTableName}/index/*
@@ -123,6 +125,14 @@ provider:
         - Effect: Allow
           Action:
             - dynamodb:Query
+            - dynamodb:PutItem
+            - dynamodb:BatchWriteItem
+          Resource:
+            - Fn::GetAtt: [AddonTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
             - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
@@ -136,6 +146,7 @@ provider:
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
     LOGS_TABLE: ${self:custom.logsDataTableName}
     NOTIFICATION_TABLE: ${self:custom.notificationsTableName}
+    ADDON_TABLE: ${self:custom.addonsTableName}
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
     DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
@@ -252,6 +263,29 @@ resources:
             KeyType: HASH
           - AttributeName: type
             KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    AddonTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.addonsTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+          - AttributeName: slug
+            AttributeType: S
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+          - AttributeName: slug
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: installationId-index
+            KeySchema:
+              - AttributeName: installation_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
     NotificationTable:

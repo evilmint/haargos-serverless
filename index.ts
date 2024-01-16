@@ -30,6 +30,8 @@ import {
   UpdateInstallationNotificationsHandler,
 } from './handlers/notifications';
 
+import { StatusCodes } from 'http-status-codes';
+import { GetInstallationAddonsHandler, UpdateInstallationAddonsHandler } from './handlers/addons';
 import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
 
 const app = express();
@@ -45,6 +47,11 @@ app.use(express.json());
 app.use(compressForAWSLambda);
 
 app.put(
+  '/installations/addons',
+  authorize,
+  UpdateInstallationAddonsHandler,
+);
+app.put(
   '/installations/notifications',
   authorize,
   UpdateInstallationNotificationsHandler,
@@ -59,6 +66,11 @@ app.get(
   '/installations/:installationId/logs/:type',
   [jwtCheck, authorize],
   GetInstallationLogsHandler,
+);
+app.get(
+  '/installations/:installationId/addons',
+  [jwtCheck, authorize],
+  GetInstallationAddonsHandler,
 );
 app.get(
   '/installations/:installationId/notifications',
@@ -87,5 +99,14 @@ app.get('/agent-config', authorize, GetAgentConfigHandler);
 app.post('/observations', authorize, PostObservationsHandler);
 
 app.use(notFoundHandler);
+
+const errorHandler = (err, _req, res, next) => {
+  if (err.status === StatusCodes.UNAUTHORIZED) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({ error: 'Unauthorized access' });
+  }
+
+  next(err);
+};
+app.use(errorHandler);
 
 export const handler = serverless(app);
