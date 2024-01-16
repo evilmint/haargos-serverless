@@ -1,6 +1,6 @@
 import {
-    BatchWriteItemCommand,
-    BatchWriteItemCommandInput,
+  BatchWriteItemCommand,
+  BatchWriteItemCommandInput,
 } from '@aws-sdk/client-dynamodb';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';

@@ -31,7 +31,10 @@ import {
 } from './handlers/notifications';
 
 import { StatusCodes } from 'http-status-codes';
-import { GetInstallationAddonsHandler, UpdateInstallationAddonsHandler } from './handlers/addons';
+import {
+  GetInstallationAddonsHandler,
+  UpdateInstallationAddonsHandler,
+} from './handlers/addons';
 import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
 
 const app = express();
@@ -46,11 +49,7 @@ app.use(cors());
 app.use(express.json());
 app.use(compressForAWSLambda);
 
-app.put(
-  '/installations/addons',
-  authorize,
-  UpdateInstallationAddonsHandler,
-);
+app.put('/installations/addons', authorize, UpdateInstallationAddonsHandler);
 app.put(
   '/installations/notifications',
   authorize,
