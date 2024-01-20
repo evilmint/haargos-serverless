@@ -12,16 +12,18 @@ custom:
     createRoute53Record: true
     endpointType: regional
     apiType: http
-  userTableName: 'user-table-${sls:stage}'
-  observationDataTableName: 'observations-table-${sls:stage}'
+  addonsTableName: 'addons-table-${sls:stage}'
+  configurationTableName: 'configuration-table-${sls:stage}'
+  contactTableName: 'contact-table-${sls:stage}'
+  dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
+  installationTableName: 'installations-table-${sls:stage}'
   logsDataTableName: 'log-table-${sls:stage}'
   notificationsTableName: 'notification-table-${sls:stage}'
-  addonsTableName: 'addons-table-${sls:stage}'
-  installationTableName: 'installations-table-${sls:stage}'
-  configurationTableName: 'configuration-table-${sls:stage}'
-  dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
-  contactTableName: 'contact-table-${sls:stage}'
+  observationDataTableName: 'observations-table-${sls:stage}'
+  osTableName: 'os-table-${sls:stage}'
   subTableName: 'sub-table-${sls:stage}'
+  supervisorTableName: 'supervisor-table-${sls:stage}'
+  userTableName: 'user-table-${sls:stage}'
   crypto:
     key: ${env:CRYPTO_KEY}
   auth0:
@@ -62,11 +64,13 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
           Resource:
-            - arn:aws:dynamodb:*:*:table/${self:custom.notificationsTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.addonsTableName}/index/*
-            - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
-            - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.logsDataTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.osTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.notificationsTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.supervisorTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.userTableName}/index/*
 
         - Effect: Allow
           Action:
@@ -128,6 +132,22 @@ provider:
             - dynamodb:PutItem
             - dynamodb:BatchWriteItem
           Resource:
+            - Fn::GetAtt: [OsTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:PutItem
+            - dynamodb:BatchWriteItem
+          Resource:
+            - Fn::GetAtt: [SupervisorTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:PutItem
+            - dynamodb:BatchWriteItem
+          Resource:
             - Fn::GetAtt: [AddonTable, Arn]
 
         - Effect: Allow
@@ -142,16 +162,18 @@ provider:
             - Fn::GetAtt: [DnsVerificationTable, Arn]
   environment:
     # Tables
-    USERS_TABLE: ${self:custom.userTableName}
-    OBSERVATION_TABLE: ${self:custom.observationDataTableName}
+    ADDON_TABLE: ${self:custom.addonsTableName}
+    CONFIGURATION_TABLE: ${self:custom.configurationTableName}
+    CONTACT_TABLE: ${self:custom.contactTableName}
+    DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
+    INSTALLATION_TABLE: ${self:custom.installationTableName}
     LOGS_TABLE: ${self:custom.logsDataTableName}
     NOTIFICATION_TABLE: ${self:custom.notificationsTableName}
-    ADDON_TABLE: ${self:custom.addonsTableName}
-    INSTALLATION_TABLE: ${self:custom.installationTableName}
-    CONFIGURATION_TABLE: ${self:custom.configurationTableName}
-    DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
-    CONTACT_TABLE: ${self:custom.contactTableName}
+    OBSERVATION_TABLE: ${self:custom.observationDataTableName}
+    OS_TABLE: ${self:custom.osTableName}
     SUB_TABLE: ${self:custom.subTableName}
+    SUPERVISOR_TABLE: ${self:custom.supervisorTableName}
+    USERS_TABLE: ${self:custom.userTableName}
 
     # Auth0
     AUTH0_ISSUER_BASE_URL: ${self:custom.auth0.issuerBaseUrl}
@@ -191,80 +213,6 @@ functions:
 
 resources:
   Resources:
-    UserTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: secret
-            AttributeType: S
-          - AttributeName: email
-            AttributeType: S
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: secret
-            KeyType: RANGE
-        GlobalSecondaryIndexes:
-          - IndexName: email-index
-            KeySchema:
-              - AttributeName: email
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${self:custom.userTableName}
-
-    ObservationTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.observationDataTableName}
-        AttributeDefinitions:
-          - AttributeName: timestamp
-            AttributeType: S
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: installation_id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: timestamp
-            KeyType: RANGE
-        GlobalSecondaryIndexes:
-          - IndexName: userId-index
-            KeySchema:
-              - AttributeName: userId
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-          - IndexName: userId-installation_id-index
-            KeySchema:
-              - AttributeName: userId
-                KeyType: HASH
-              - AttributeName: installation_id
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-        BillingMode: PAY_PER_REQUEST
-
-    LogTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.logsDataTableName}
-        AttributeDefinitions:
-          - AttributeName: installation_id
-            AttributeType: S
-          - AttributeName: type
-            AttributeType: S
-        KeySchema:
-          - AttributeName: installation_id
-            KeyType: HASH
-          - AttributeName: type
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-
     AddonTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -286,45 +234,6 @@ resources:
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
-        BillingMode: PAY_PER_REQUEST
-
-    NotificationTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.notificationsTableName}
-        AttributeDefinitions:
-          - AttributeName: installation_id
-            AttributeType: S
-          - AttributeName: created_at
-            AttributeType: S
-        KeySchema:
-          - AttributeName: installation_id
-            KeyType: HASH
-          - AttributeName: created_at
-            KeyType: RANGE
-        GlobalSecondaryIndexes:
-          - IndexName: installationId-index
-            KeySchema:
-              - AttributeName: installation_id
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-        BillingMode: PAY_PER_REQUEST
-
-    InstallationTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.installationTableName}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-          - AttributeName: userId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: id
-            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
 
     DnsVerificationTable:
@@ -364,6 +273,118 @@ resources:
             Projection:
               ProjectionType: ALL
 
+    ConfigurationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.configurationTableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    InstallationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.installationTableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    LogTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.logsDataTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+          - AttributeName: type
+            AttributeType: S
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+          - AttributeName: type
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    NotificationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.notificationsTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+          - AttributeName: created_at
+            AttributeType: S
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+          - AttributeName: created_at
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: installationId-index
+            KeySchema:
+              - AttributeName: installation_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    ObservationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.observationDataTableName}
+        AttributeDefinitions:
+          - AttributeName: timestamp
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: installation_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: userId-installation_id-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: installation_id
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    OsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.osTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
     SubTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -376,14 +397,39 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
 
-    ConfigurationTable:
+    SupervisorTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:custom.configurationTableName}
+        TableName: ${self:custom.supervisorTableName}
         AttributeDefinitions:
-          - AttributeName: id
+          - AttributeName: installation_id
             AttributeType: S
         KeySchema:
-          - AttributeName: id
+          - AttributeName: installation_id
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: secret
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: secret
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.userTableName}

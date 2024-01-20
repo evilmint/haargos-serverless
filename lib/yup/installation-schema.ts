@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import ipaddr from 'ipaddr.js';
+import { isLocalDomain } from '../local-domain';
 
 export const createInstallationFormSchema = z.object({
   name: z
@@ -17,16 +17,18 @@ export const createInstallationFormSchema = z.object({
       .trim()
       .url()
       .refine(i => {
-        return new URL(i).protocol.toLowerCase() == 'https:';
-      }, 'Only HTTPS URLs are allowed.')
-      .refine(i => {
-        try {
-          const _ = ipaddr.parse(new URL(i).host);
-          return false;
-        } catch {
+        const url = new URL(i);
+
+        if (isLocalDomain(url)) {
           return true;
         }
-      }, 'IP addresses are not allowed.'),
+
+        try {
+          return url.protocol.toLowerCase() == 'https:';
+        } catch {
+          return false;
+        }
+      }, 'Only HTTPS URLs are allowed.'),
   ]),
 });
 
@@ -49,15 +51,17 @@ export const updateInstallationFormSchema = z.object({
       .trim()
       .url()
       .refine(i => {
-        return new URL(i).protocol.toLowerCase() == 'https:';
-      }, 'Only HTTPS URLs are allowed.')
-      .refine(i => {
-        try {
-          const _ = ipaddr.parse(new URL(i).host);
-          return false;
-        } catch {
+        const url = new URL(i);
+
+        if (isLocalDomain(url)) {
           return true;
         }
-      }, 'IP addresses are not allowed.'),
+
+        try {
+          return url.protocol.toLowerCase() == 'https:';
+        } catch {
+          return false;
+        }
+      }, 'Only HTTPS URLs are allowed.'),
   ]),
 });

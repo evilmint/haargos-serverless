@@ -15,6 +15,7 @@ import { v4 } from 'uuid';
 import { encrypt } from '../lib/crypto.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { InstallationLimitError } from '../lib/errors.js';
+import { isLocalDomain } from '../lib/local-domain.js';
 import { Danger } from '../lib/models/danger.js';
 import { DnsVerificationRecord } from '../lib/models/dns-verification-record.js';
 import { Installation } from '../lib/models/installation.js';
@@ -168,27 +169,46 @@ async function updateInstallation(
       installationParams.ExpressionAttributeNames!['#url'] = 'url';
       installationParams.ExpressionAttributeNames!['#instance'] = 'instance';
 
+      installationParams.ExpressionAttributeValues![':is_verified'] = false;
+
+      // New URL is empty - delete bound instance URL
       if (url.trim() === '') {
         installationParams.ExpressionAttributeValues![':url'] = '';
         installationParams.ExpressionAttributeValues![':verification_status'] = 'EMPTY';
         installationParams.ExpressionAttributeValues![':subdomain'] = '';
         installationParams.ExpressionAttributeValues![':subdomain_value'] = '';
       } else {
-        const { subdomain, subdomain_value } = await createDnsVerificationRecord(
-          installationId,
-          userId,
-          'instance',
-          url,
-        );
+        const localDomain = isLocalDomain(new URL(url));
 
         installationParams.ExpressionAttributeValues![':url'] = url;
-        installationParams.ExpressionAttributeValues![':verification_status'] = 'PENDING';
-        installationParams.ExpressionAttributeValues![':subdomain'] = subdomain;
-        installationParams.ExpressionAttributeValues![':subdomain_value'] =
-          subdomain_value;
-      }
+        installationParams.ExpressionAttributeValues![':is_verified'] = localDomain;
 
-      installationParams.ExpressionAttributeValues![':is_verified'] = false;
+        installationParams.UpdateExpression += ', #urls.#instance.#url_type = :url_type';
+        installationParams.ExpressionAttributeNames!['#url_type'] = 'url_type';
+        installationParams.ExpressionAttributeValues![':url_type'] = localDomain
+          ? 'PRIVATE'
+          : 'PUBLIC';
+
+        if (localDomain) {
+          installationParams.ExpressionAttributeValues![':verification_status'] =
+            'SUCCESS';
+
+          installationParams.ExpressionAttributeValues![':subdomain'] = '';
+          installationParams.ExpressionAttributeValues![':subdomain_value'] = '';
+        } else {
+          const { subdomain, subdomain_value } = await createDnsVerificationRecord(
+            installationId,
+            userId,
+            'instance',
+            url,
+          );
+          installationParams.ExpressionAttributeValues![':verification_status'] =
+            'PENDING';
+          installationParams.ExpressionAttributeValues![':subdomain'] = subdomain;
+          installationParams.ExpressionAttributeValues![':subdomain_value'] =
+            subdomain_value;
+        }
+      }
     }
 
     await dynamoDbClient.send(new UpdateCommand(installationParams));
@@ -255,7 +275,7 @@ async function createInstallation(
 
   const agentToken = encrypt(data);
 
-  const installation: Installation = {
+  let installation: Installation = {
     userId: userId,
     id: id,
     agent_token: agentToken,
@@ -270,22 +290,38 @@ async function createInstallation(
   };
 
   if (instance != '') {
-    const { subdomain, subdomain_value } = await createDnsVerificationRecord(
-      id,
-      userId,
-      'instance',
-      instance,
-    );
+    const localDomain = isLocalDomain(new URL(instance));
 
-    installation.urls = {
-      instance: {
-        is_verified: false,
-        url: instance,
-        verification_status: 'PENDING',
-        subdomain: subdomain,
-        subdomain_value: subdomain_value,
-      },
-    };
+    if (!localDomain) {
+      const { subdomain, subdomain_value } = await createDnsVerificationRecord(
+        id,
+        userId,
+        'instance',
+        instance,
+      );
+
+      installation.urls = {
+        instance: {
+          is_verified: false,
+          url: instance,
+          url_type: 'PUBLIC',
+          verification_status: 'PENDING',
+          subdomain: subdomain,
+          subdomain_value: subdomain_value,
+        },
+      };
+    } else {
+      installation.urls = {
+        instance: {
+          is_verified: true,
+          url: instance,
+          url_type: 'PRIVATE',
+          verification_status: 'SUCCESS',
+          subdomain: '',
+          subdomain_value: '',
+        },
+      };
+    }
   } else {
     installation.urls = {
       instance: {

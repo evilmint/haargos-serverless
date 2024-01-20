@@ -11,7 +11,8 @@ export type Installation = {
     instance: {
       is_verified: boolean;
       url: string;
-      verification_status: 'PENDING' | 'EMPTY';
+      url_type?: 'PUBLIC' | 'PRIVATE';
+      verification_status: 'PENDING' | 'EMPTY' | 'SUCCESS';
       subdomain?: string;
       subdomain_value?: string;
     } | null;
