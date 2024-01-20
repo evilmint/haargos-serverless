@@ -4,7 +4,7 @@ import { BaseRequest } from '../lib/base-request';
 import {
   createInstallationFormSchema,
   updateInstallationFormSchema,
-} from '../lib/yup/installation-schema';
+} from '../lib/zod/installation-schema';
 import {
   createInstallation,
   deleteInstallation,
@@ -171,5 +171,6 @@ export {
   CreateInstallationHandler,
   DeleteInstallationHandler,
   GetInstallationsHandler,
-  UpdateInstallationHandler,
+  UpdateInstallationHandler
 };
+

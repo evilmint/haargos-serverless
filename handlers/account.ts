@@ -3,8 +3,8 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { maskError } from '../lib/mask-error';
 import { TypedRequestBody } from '../lib/typed-request-body';
-import createAccountSchema from '../lib/yup/account-schema';
-import userSchema from '../lib/yup/user-schema';
+import createAccountSchema from '../lib/zod/account-schema';
+import userSchema from '../lib/zod/user-schema';
 import { createAccount } from '../services/account-service';
 const { deleteAccount, updateAccount } = require('../services/account-service');
 

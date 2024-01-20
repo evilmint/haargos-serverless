@@ -3,26 +3,26 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
-import { updateAddonsSchema } from '../lib/zod/addons-schema';
-import { fetchAddonsByInstallationId, updateAddons } from '../services/addon-service';
+import { osSchema } from '../lib/zod/os-schema'; // Import OS schema
+import { fetchOsInfoByInstallationId, updateOsInfo } from '../services/os-service'; // Import OS service
 
-const UpdateInstallationAddonsHandler = async (
+const UpdateInstallationOsHandler = async (
   req: BaseRequest,
   res: Response,
   _next: NextFunction,
 ) => {
-  type ValidatePayload = z.infer<typeof updateAddonsSchema>;
+  type ValidatePayload = z.infer<typeof osSchema>;
 
   try {
     let payload: ValidatePayload = req.body;
 
-    updateAddonsSchema.parse(payload);
+    osSchema.parse(payload);
 
     if (!req.agentToken) {
       return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
     }
 
-    await updateAddons(req.agentToken['installation_id'], payload);
+    await updateOsInfo(req.agentToken['installation_id'], payload);
 
     return res.status(StatusCodes.NO_CONTENT).json();
   } catch (error) {
@@ -33,16 +33,16 @@ const UpdateInstallationAddonsHandler = async (
   }
 };
 
-const GetInstallationAddonsHandler = async (
+const GetInstallationOsHandler = async (
   req: BaseRequest,
   res: Response,
   _next: NextFunction,
 ) => {
-  const addons = (await fetchAddonsByInstallationId(req.params.installationId)) ?? [];
+  const osInfo = await fetchOsInfoByInstallationId(req.params.installationId);
 
   return res.status(StatusCodes.OK).json({
-    body: { addons: addons },
+    body: osInfo,
   });
 };
 
-export { GetInstallationAddonsHandler, UpdateInstallationAddonsHandler };
+export { GetInstallationOsHandler, UpdateInstallationOsHandler };

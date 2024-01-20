@@ -14,7 +14,7 @@ import { dynamoDbClient } from '../lib/dynamodb.js';
 import { UpgradeTierError } from '../lib/errors.js';
 import { Danger } from '../lib/models/danger.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
-import { environmentSchema } from '../lib/yup/observation-schema.js';
+import { environmentSchema } from '../lib/zod/observation-schema.js';
 import { updateInstallationAgentData } from './installation-service.js';
 
 type ResponseWithLogs = QueryCommandOutput & { logs: string };

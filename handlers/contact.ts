@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { maskError } from '../lib/mask-error';
 import { TypedRequestBody } from '../lib/typed-request-body';
-import contactSchema from '../lib/yup/contact-schema';
+import contactSchema from '../lib/zod/contact-schema';
 import { Contact, postContact } from '../services/contact-service';
 
 type ContactValidatePayload = z.infer<typeof contactSchema>;

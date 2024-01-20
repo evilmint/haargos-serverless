@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
-import { updateNotificationsSchema } from '../lib/yup/notifications-schema';
+import { updateNotificationsSchema } from '../lib/zod/notifications-schema';
 import {
   fetchNotificationsByInstallationId,
   updateNotifications,

@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
-import { updateLogsSchema } from '../lib/yup/logs-schema';
+import { updateLogsSchema } from '../lib/zod/logs-schema';
 import { fetchLogByInstallationIdAndType, updateLogs } from '../services/log-service';
 
 const UpdateInstallationLogsHandler = async (

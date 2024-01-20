@@ -36,6 +36,8 @@ import {
   UpdateInstallationAddonsHandler,
 } from './handlers/addons';
 import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
+import { GetInstallationOsHandler, UpdateInstallationOsHandler } from './handlers/os';
+import { GetInstallationSupervisorHandler, UpdateInstallationSupervisorHandler } from './handlers/supervisor';
 
 const app = express();
 
@@ -56,6 +58,8 @@ app.put(
   UpdateInstallationNotificationsHandler,
 );
 app.put('/installations/logs', authorize, UpdateInstallationLogsHandler);
+app.put('/installations/supervisor', authorize, UpdateInstallationSupervisorHandler);
+app.put('/installations/os', authorize, UpdateInstallationOsHandler);
 
 // Web
 app.get('/users/me', [jwtCheck, authorize], UsersMeHandler);
@@ -70,6 +74,16 @@ app.get(
   '/installations/:installationId/addons',
   [jwtCheck, authorize],
   GetInstallationAddonsHandler,
+);
+app.get(
+  '/installations/:installationId/supervisor',
+  [jwtCheck, authorize],
+  GetInstallationSupervisorHandler,
+);
+app.get(
+  '/installations/:installationId/os',
+  [jwtCheck, authorize],
+  GetInstallationOsHandler,
 );
 app.get(
   '/installations/:installationId/notifications',

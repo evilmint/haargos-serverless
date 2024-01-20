@@ -5,7 +5,7 @@ import { BaseRequest } from '../lib/base-request';
 import { UpgradeTierError } from '../lib/errors';
 import { maskError } from '../lib/mask-error';
 import { TierFeatureManager } from '../lib/tier-feature-manager';
-import { observationSchema } from '../lib/yup/observation-schema';
+import { observationSchema } from '../lib/zod/observation-schema';
 import { checkInstallation } from '../services/installation-service';
 import { getObservations, putObservation } from '../services/observation-service';
 
