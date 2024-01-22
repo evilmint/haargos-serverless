@@ -16,7 +16,12 @@ export const supervisorSchema = z
     debug: z.boolean(),
     debug_block: z.boolean(),
     diagnostics: z.union([z.null(), z.any()]), // Replace z.any() with a more specific type if applicable
-    addons_repositories: z.array(z.string()),
+    addons_repositories: z.array(
+      z.object({
+        name: z.string(),
+        slug: z.string(),
+      }),
+    ),
     auto_update: z.boolean(),
   })
   .strict();
