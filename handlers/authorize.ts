@@ -11,6 +11,7 @@ import { Tier } from '../lib/tier-feature-manager';
 import { fetchSubRecord, verifySubEmail } from '../services/sub-service';
 import { fetchUserById } from '../services/user-service';
 
+import { GetCommandInput } from '@aws-sdk/lib-dynamodb';
 import { UserData } from 'auth0';
 
 const AuthenticationClient = require('auth0').AuthenticationClient;
@@ -32,7 +33,7 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
       const userId = decryptedData['user_id'];
       const secret = decryptedData['secret'];
 
-      const params = {
+      const params: GetCommandInput = {
         TableName: process.env.USERS_TABLE,
         Key: marshall({
           userId: userId,

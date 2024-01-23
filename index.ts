@@ -35,9 +35,13 @@ import {
   GetInstallationAddonsHandler,
   UpdateInstallationAddonsHandler,
 } from './handlers/addons';
+import { GetInstallationPendingJobsHandler, SubmitJobHandler, UpdateJobStatusHandler } from './handlers/jobs';
 import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
 import { GetInstallationOsHandler, UpdateInstallationOsHandler } from './handlers/os';
-import { GetInstallationSupervisorHandler, UpdateInstallationSupervisorHandler } from './handlers/supervisor';
+import {
+  GetInstallationSupervisorHandler,
+  UpdateInstallationSupervisorHandler,
+} from './handlers/supervisor';
 
 const app = express();
 
@@ -60,6 +64,8 @@ app.put(
 app.put('/installations/logs', authorize, UpdateInstallationLogsHandler);
 app.put('/installations/supervisor', authorize, UpdateInstallationSupervisorHandler);
 app.put('/installations/os', authorize, UpdateInstallationOsHandler);
+app.get('/installations/jobs/pending', authorize, GetInstallationPendingJobsHandler);
+app.post('/installations/jobs/:jobId/complete', authorize, UpdateJobStatusHandler);
 
 // Web
 app.get('/users/me', [jwtCheck, authorize], UsersMeHandler);
@@ -70,6 +76,8 @@ app.get(
   [jwtCheck, authorize],
   GetInstallationLogsHandler,
 );
+app.post('/installations/:installationId/jobs', [jwtCheck, authorize], SubmitJobHandler);
+
 app.get(
   '/installations/:installationId/addons',
   [jwtCheck, authorize],

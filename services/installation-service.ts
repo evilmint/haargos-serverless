@@ -393,5 +393,6 @@ export {
   getInstallations,
   getLatestRelease,
   updateInstallation,
-  updateInstallationAgentData,
+  updateInstallationAgentData
 };
+
