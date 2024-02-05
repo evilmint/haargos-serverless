@@ -5,6 +5,7 @@ import { BaseRequest } from '../lib/base-request';
 import { submitJobSchema } from '../lib/zod/job-schema';
 import {
     fetchJobById,
+    fetchJobsByInstallationId,
     fetchPendingJobsByInstallationId,
     insertJob,
     markJobAsCompleted,
@@ -31,7 +32,6 @@ const GetInstallationPendingJobsHandler = async (
       .json({ error: 'Internal Server Error' });
   }
 };
-
 
 const UpdateJobStatusHandler = async (
   req: BaseRequest,
@@ -83,4 +83,29 @@ const SubmitJobHandler = async (req: BaseRequest, res: Response, _next: NextFunc
   }
 };
 
-export { GetInstallationPendingJobsHandler, SubmitJobHandler, UpdateJobStatusHandler };
+const ListJobsHandler = async (req: BaseRequest, res: Response, _next: NextFunction) => {
+  try {
+    const installationId = req.params.installationId;
+
+    if (!installationId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Bad request' });
+    }
+
+    const jobs = await fetchJobsByInstallationId(installationId);
+
+    return res.status(StatusCodes.OK).json({ body: { jobs: jobs } });
+  } catch (error) {
+    console.error('An error occurred:', error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Internal Server Error' });
+  }
+};
+
+export {
+    GetInstallationPendingJobsHandler,
+    ListJobsHandler,
+    SubmitJobHandler,
+    UpdateJobStatusHandler
+};
+

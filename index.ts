@@ -13,6 +13,7 @@ import {
   DeleteAccountHandler,
   UpdateAccountHandler,
 } from './handlers/account';
+import { CreateAlarmConfigurationHandler, GetAlarmConfigurationsHandler, GetUserAlarmConfigurationsHandler } from './handlers/alarms';
 import { GetAgentConfigHandler } from './handlers/config';
 import {
   CreateInstallationHandler,
@@ -35,7 +36,12 @@ import {
   GetInstallationAddonsHandler,
   UpdateInstallationAddonsHandler,
 } from './handlers/addons';
-import { GetInstallationPendingJobsHandler, SubmitJobHandler, UpdateJobStatusHandler } from './handlers/jobs';
+import {
+  GetInstallationPendingJobsHandler,
+  ListJobsHandler,
+  SubmitJobHandler,
+  UpdateJobStatusHandler,
+} from './handlers/jobs';
 import { GetObservationsHandler, PostObservationsHandler } from './handlers/observations';
 import { GetInstallationOsHandler, UpdateInstallationOsHandler } from './handlers/os';
 import {
@@ -55,6 +61,7 @@ app.use(cors());
 app.use(express.json());
 app.use(compressForAWSLambda);
 
+// Agent 
 app.put('/installations/addons', authorize, UpdateInstallationAddonsHandler);
 app.put(
   '/installations/notifications',
@@ -76,6 +83,7 @@ app.get(
   [jwtCheck, authorize],
   GetInstallationLogsHandler,
 );
+app.get('/installations/:installationId/jobs', [jwtCheck, authorize], ListJobsHandler);
 app.post('/installations/:installationId/jobs', [jwtCheck, authorize], SubmitJobHandler);
 
 app.get(
@@ -87,6 +95,21 @@ app.get(
   '/installations/:installationId/supervisor',
   [jwtCheck, authorize],
   GetInstallationSupervisorHandler,
+);
+app.get(
+  '/alarms/configurations',
+  [jwtCheck, authorize],
+  GetAlarmConfigurationsHandler,
+);
+app.get(
+  '/alarms',
+  [jwtCheck, authorize],
+  GetUserAlarmConfigurationsHandler,
+);
+app.post(
+  '/alarms/configurations',
+  [jwtCheck, authorize],
+  CreateAlarmConfigurationHandler,
 );
 app.get(
   '/installations/:installationId/os',

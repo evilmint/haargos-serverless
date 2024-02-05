@@ -18,6 +18,7 @@ custom:
   dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   jobsTableName: 'jobs-table-${sls:stage}'
+  alarmConfigurationTableName: 'alarm-configuration-table-${sls:stage}'
   logsDataTableName: 'log-table-${sls:stage}'
   notificationsTableName: 'notification-table-${sls:stage}'
   observationDataTableName: 'observations-table-${sls:stage}'
@@ -98,6 +99,12 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [JobTable, Arn]
+      
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+          Resource:
+            - Fn::GetAtt: [AlarmConfigurationTable, Arn]
 
         - Effect: Allow
           Action:
@@ -183,6 +190,7 @@ provider:
     DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     JOB_TABLE: ${self:custom.jobsTableName}
+    ALARM_CONFIGURATION_TABLE: ${self:custom.alarmConfigurationTableName}
     LOGS_TABLE: ${self:custom.logsDataTableName}
     NOTIFICATION_TABLE: ${self:custom.notificationsTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
@@ -352,6 +360,22 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    AlarmConfigurationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.alarmConfigurationTableName}
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: created_at
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: created_at
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
 
     LogTable:
