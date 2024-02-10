@@ -13,7 +13,12 @@ import {
   DeleteAccountHandler,
   UpdateAccountHandler,
 } from './handlers/account';
-import { CreateAlarmConfigurationHandler, GetAlarmConfigurationsHandler, GetUserAlarmConfigurationsHandler } from './handlers/alarms';
+import {
+  CreateUserAlarmConfigurationHandler,
+  DeleteUserAlarmConfigurationHandler,
+  GetAlarmConfigurationsHandler,
+  GetUserAlarmConfigurationsHandler,
+} from './handlers/alarms';
 import { GetAgentConfigHandler } from './handlers/config';
 import {
   CreateInstallationHandler,
@@ -61,7 +66,7 @@ app.use(cors());
 app.use(express.json());
 app.use(compressForAWSLambda);
 
-// Agent 
+// Agent
 app.put('/installations/addons', authorize, UpdateInstallationAddonsHandler);
 app.put(
   '/installations/notifications',
@@ -96,21 +101,15 @@ app.get(
   [jwtCheck, authorize],
   GetInstallationSupervisorHandler,
 );
-app.get(
-  '/alarms/configurations',
+app.get('/alarms/configurations', [jwtCheck, authorize], GetAlarmConfigurationsHandler);
+app.get('/alarms', [jwtCheck, authorize], GetUserAlarmConfigurationsHandler);
+app.post('/alarms', [jwtCheck, authorize], CreateUserAlarmConfigurationHandler);
+app.delete(
+  '/alarms/:alarmId',
   [jwtCheck, authorize],
-  GetAlarmConfigurationsHandler,
+  DeleteUserAlarmConfigurationHandler,
 );
-app.get(
-  '/alarms',
-  [jwtCheck, authorize],
-  GetUserAlarmConfigurationsHandler,
-);
-app.post(
-  '/alarms/configurations',
-  [jwtCheck, authorize],
-  CreateAlarmConfigurationHandler,
-);
+
 app.get(
   '/installations/:installationId/os',
   [jwtCheck, authorize],

@@ -1,11 +1,14 @@
 import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import { z } from 'zod';
+import { BaseRequest } from '../lib/base-request';
 import { TypedRequestBody } from '../lib/typed-request-body';
+import { createAlarmSchema } from '../lib/zod/alarm-schema';
 import {
-    UserAlarmConfiguration,
-    createAlarmConfiguration,
-    fetchUserAlarmConfigurations,
-    getAlarmConfigurations,
+  createAlarmConfiguration as createUserAlarmConfiguration,
+  deleteUserAlarmConfiguration,
+  fetchUserAlarmConfigurations,
+  getAlarmConfigurations,
 } from '../services/alarm-service';
 
 export async function GetAlarmConfigurationsHandler(
@@ -30,11 +33,31 @@ export async function GetUserAlarmConfigurationsHandler(
   });
 }
 
-export async function CreateAlarmConfigurationHandler(
-  req: TypedRequestBody<UserAlarmConfiguration>,
+export async function CreateUserAlarmConfigurationHandler(
+  req: BaseRequest,
   res: Response,
 ) {
-  await createAlarmConfiguration(req.user.userId, req.body);
+  try {
+    let payload: z.infer<typeof createAlarmSchema> = req.body;
+    createAlarmSchema.parse(payload);
 
-  return res.status(StatusCodes.CREATED).json();
+    await createUserAlarmConfiguration(req.user.userId, req.body);
+
+    return res.status(StatusCodes.CREATED).json();
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
+  }
+}
+
+export async function DeleteUserAlarmConfigurationHandler(
+  req: BaseRequest,
+  res: Response,
+) {
+  try {
+    await deleteUserAlarmConfiguration(req.user.userId, req.params.alarmId);
+
+    return res.status(StatusCodes.NO_CONTENT).json();
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error.message });
+  }
 }

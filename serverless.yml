@@ -13,12 +13,12 @@ custom:
     endpointType: regional
     apiType: http
   addonsTableName: 'addons-table-${sls:stage}'
+  alarmConfigurationTableName: 'alarm-configuration-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
   contactTableName: 'contact-table-${sls:stage}'
   dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
   installationTableName: 'installations-table-${sls:stage}'
   jobsTableName: 'jobs-table-${sls:stage}'
-  alarmConfigurationTableName: 'alarm-configuration-table-${sls:stage}'
   logsDataTableName: 'log-table-${sls:stage}'
   notificationsTableName: 'notification-table-${sls:stage}'
   observationDataTableName: 'observations-table-${sls:stage}'
@@ -51,6 +51,14 @@ provider:
             - dynamodb:BatchWriteItem
           Resource:
             - Fn::GetAtt: [AddonTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [AlarmConfigurationTable, Arn]
 
         - Effect: Allow
           Action:
@@ -99,12 +107,6 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [JobTable, Arn]
-      
-        - Effect: Allow
-          Action:
-            - dynamodb:Query
-          Resource:
-            - Fn::GetAtt: [AlarmConfigurationTable, Arn]
 
         - Effect: Allow
           Action:
@@ -127,12 +129,11 @@ provider:
             - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
-            # - dynamodb:UpdateItem
             - dynamodb:BatchWriteItem
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [ObservationTable, Arn]
-  
+
         - Effect: Allow
           Action:
             - dynamodb:Query
@@ -174,6 +175,7 @@ provider:
             - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:*:*:table/${self:custom.addonsTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.alarmConfigurationTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.jobsTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.logsDataTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*
@@ -185,12 +187,12 @@ provider:
   environment:
     # Tables
     ADDON_TABLE: ${self:custom.addonsTableName}
+    ALARM_CONFIGURATION_TABLE: ${self:custom.alarmConfigurationTableName}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
     CONTACT_TABLE: ${self:custom.contactTableName}
     DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
     INSTALLATION_TABLE: ${self:custom.installationTableName}
     JOB_TABLE: ${self:custom.jobsTableName}
-    ALARM_CONFIGURATION_TABLE: ${self:custom.alarmConfigurationTableName}
     LOGS_TABLE: ${self:custom.logsDataTableName}
     NOTIFICATION_TABLE: ${self:custom.notificationsTableName}
     OBSERVATION_TABLE: ${self:custom.observationDataTableName}
@@ -255,6 +257,31 @@ resources:
           - IndexName: installationId-index
             KeySchema:
               - AttributeName: installation_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    AlarmConfigurationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.alarmConfigurationTableName}
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: created_at
+            AttributeType: S
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: created_at
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: alarmId-index
+            KeySchema:
+              - AttributeName: id
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
@@ -360,22 +387,6 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
-        BillingMode: PAY_PER_REQUEST
-
-    AlarmConfigurationTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.alarmConfigurationTableName}
-        AttributeDefinitions:
-          - AttributeName: user_id
-            AttributeType: S
-          - AttributeName: created_at
-            AttributeType: S
-        KeySchema:
-          - AttributeName: user_id
-            KeyType: HASH
-          - AttributeName: created_at
-            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
 
     LogTable:

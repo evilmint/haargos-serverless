@@ -1,10 +1,5 @@
 import { BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
-import {
-  PutCommand,
-  QueryCommand,
-  QueryCommandInput,
-  QueryCommandOutput,
-} from '@aws-sdk/lib-dynamodb';
+import { PutCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { v4 } from 'uuid';
 import { z } from 'zod';
@@ -16,25 +11,6 @@ import { Danger } from '../lib/models/danger.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
 import { environmentSchema } from '../lib/zod/observation-schema.js';
 import { updateInstallationAgentData } from './installation-service.js';
-
-type ResponseWithLogs = QueryCommandOutput & { logs: string };
-
-function mergeLogsAndDeduplicate(queryResult: QueryCommandOutput): ResponseWithLogs {
-  const logsSet = new Set();
-
-  queryResult.Items?.forEach(item => {
-    const logs = item.logs ? item.logs.split('\n') : [];
-    logs.forEach(log => logsSet.add(log));
-    delete item.logs; // Remove the logs property so that it's not returned to the user
-  });
-
-  const uniqueLogs = Array.from(logsSet).join('\n');
-
-  return {
-    ...queryResult,
-    logs: uniqueLogs,
-  };
-}
 
 async function getObservations(
   tier: Tier,
@@ -85,12 +61,9 @@ async function getObservations(
       });
     }
 
-    //const responseWithLogs = mergeLogsAndDeduplicate(response);
-
     // Append the items from this batch to the allObservations array
 
     if (response.Items) {
-      //allObservations.logs += `\n${responseWithLogs.logs}`;
       allObservations.Items = allObservations.Items.concat(response.Items);
     }
 

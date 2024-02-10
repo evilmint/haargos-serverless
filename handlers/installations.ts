@@ -171,6 +171,5 @@ export {
   CreateInstallationHandler,
   DeleteInstallationHandler,
   GetInstallationsHandler,
-  UpdateInstallationHandler
+  UpdateInstallationHandler,
 };
-

@@ -4,11 +4,11 @@ import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { submitJobSchema } from '../lib/zod/job-schema';
 import {
-    fetchJobById,
-    fetchJobsByInstallationId,
-    fetchPendingJobsByInstallationId,
-    insertJob,
-    markJobAsCompleted,
+  fetchJobById,
+  fetchJobsByInstallationId,
+  fetchPendingJobsByInstallationId,
+  insertJob,
+  markJobAsCompleted,
 } from '../services/job-service';
 
 const GetInstallationPendingJobsHandler = async (
@@ -103,9 +103,8 @@ const ListJobsHandler = async (req: BaseRequest, res: Response, _next: NextFunct
 };
 
 export {
-    GetInstallationPendingJobsHandler,
-    ListJobsHandler,
-    SubmitJobHandler,
-    UpdateJobStatusHandler
+  GetInstallationPendingJobsHandler,
+  ListJobsHandler,
+  SubmitJobHandler,
+  UpdateJobStatusHandler,
 };
-

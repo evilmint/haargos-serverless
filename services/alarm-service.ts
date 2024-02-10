@@ -1,4 +1,13 @@
-import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteItemCommand } from '@aws-sdk/client-dynamodb';
+import {
+  DeleteCommandInput,
+  PutCommand,
+  PutCommandInput,
+  QueryCommand,
+  QueryCommandInput,
+} from '@aws-sdk/lib-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
+import moment from 'moment';
 import { dynamoDbClient } from '../lib/dynamodb';
 
 export interface AlarmConfiguration {
@@ -7,6 +16,29 @@ export interface AlarmConfiguration {
 }
 
 type AlarmCategory = 'ADDON' | 'CORE' | 'NETWORK' | 'DEVICE';
+
+export interface UserAlarmConfiguration {
+  type: string;
+  category: AlarmCategory;
+  name: string;
+  configuration: {
+    datapointCount?: number;
+    addons?: { slug: string }[];
+    notificationMethod: 'E-mail';
+  };
+}
+
+export interface UserAlarmConfigurationOutput {
+  type: string;
+  category: AlarmCategory;
+  name: string;
+  created_at: string;
+  configuration: {
+    datapointCount?: number;
+    addons?: { slug: string }[];
+    notificationMethod: 'E-mail';
+  };
+}
 
 export interface AlarmType {
   name: string;
@@ -149,36 +181,7 @@ let staticConfigurations: AlarmConfiguration[] = [
 ];
 
 export async function getAlarmConfigurations(userId: string) {
-  // Mark sections as disabled because they exist on user
-  // TODO: If specific addons set up (multi select) just remove/dsiable the addon entry instead of the whole item
-  // TODO: Return available sections from backend - first step: static data. second: filter by already set alarms
-
-  //   const userAlarmConfigurations = await fetchUserAlarmConfigurations(userId);
-
-  let configurations = staticConfigurations;
-
-  // Maybe this is not needed at all for now. Focus on creating/modifying/triggering alarms for now.
-  //   configurations.forEach(c => {
-  //     c.alarmTypes.forEach(at => {
-  //       // TODO: This is basic checking. if configuration is of addon-type, disable specific addons only. redo the type
-  //       // to account for that
-
-  //       if (userAlarmConfigurations.map(ac => ac.type).includes(at.type)) {
-  //         at.disabled = true;
-  //       }
-  //     });
-  //   });
-
-  return configurations;
-}
-
-export interface UserAlarmConfiguration {
-  type: string;
-  category: AlarmCategory;
-  configuration: {
-    datapointCount?: number;
-    addons?: { slug: string }[];
-  };
+  return staticConfigurations;
 }
 
 export async function fetchUserAlarmConfigurations(
@@ -198,7 +201,24 @@ export async function fetchUserAlarmConfigurations(
 
   const response = await dynamoDbClient.send(new QueryCommand(params));
 
-  return response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
+  let alarmNameByType = staticConfigurations
+    .map(a => a.alarmTypes)
+    .flat()
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
+  let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
+
+  items.forEach(i => {
+    i.name = alarmNameByType[i.type];
+  });
+
+  return items;
 }
 
 export async function createAlarmConfiguration(
@@ -207,13 +227,76 @@ export async function createAlarmConfiguration(
 ) {
   const id = require('crypto').randomUUID();
 
-  const putParams = {
+  const putParams: PutCommandInput = {
     TableName: process.env.ALARM_CONFIGURATION_TABLE,
     Item: {
       id: id,
-      userId: userId,
+      created_at: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
+      user_id: userId,
+      deleted: false,
       ...alarmConfiguration,
     },
   };
   await dynamoDbClient.send(new PutCommand(putParams));
+}
+
+async function fetchUserAlarmConfiguration(
+  alarmId: string,
+): Promise<UserAlarmConfigurationOutput | null> {
+  const params: QueryCommandInput = {
+    TableName: process.env.ALARM_CONFIGURATION_TABLE,
+    IndexName: 'alarmId-index',
+    KeyConditionExpression: '#id = :id',
+    ExpressionAttributeNames: {
+      '#id': 'id',
+    },
+    ExpressionAttributeValues: {
+      ':id': alarmId,
+    },
+    Limit: 1,
+  };
+
+  const response = await dynamoDbClient.send(new QueryCommand(params));
+
+  let alarmNameByType = staticConfigurations
+    .map(a => a.alarmTypes)
+    .flat()
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
+  let items = response.Items ? (response.Items as UserAlarmConfigurationOutput[]) : [];
+
+  items.forEach(i => {
+    i.name = alarmNameByType[i.type];
+  });
+
+  return items.length > 0 ? items[0] : null;
+}
+
+export async function deleteUserAlarmConfiguration(
+  userId: string,
+  alarmId: string,
+): Promise<void> {
+  const alarmConfiguration = await fetchUserAlarmConfiguration(alarmId);
+
+  if (alarmConfiguration == null) {
+    throw Error('No alarm found');
+  }
+
+  const userPrimaryKey = {
+    user_id: userId,
+    created_at: alarmConfiguration.created_at,
+  };
+
+  const deleteParams: DeleteCommandInput = {
+    TableName: process.env.ALARM_CONFIGURATION_TABLE,
+    Key: marshall(userPrimaryKey),
+  };
+
+  await dynamoDbClient.send(new DeleteItemCommand(deleteParams));
 }
