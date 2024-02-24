@@ -92,10 +92,7 @@ async function PostObservationsHandler(
         .json({ error: maskError(validationErrors, req.IN_DEV_STAGE) });
     } else {
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        error: maskError(
-          'Could not insert observation data [error=' + error + '].',
-          req.IN_DEV_STAGE,
-        ),
+        error: 'Could not insert observation data [error=' + error + '].',
       });
     }
   }

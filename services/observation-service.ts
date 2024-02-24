@@ -7,9 +7,11 @@ import { User } from '../lib/base-request.js';
 import { chunkArray } from '../lib/chunk-array.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { UpgradeTierError } from '../lib/errors.js';
+import MetricStore from '../lib/metrics/metric-store.js';
+import ObservationMetricAnalyzer from '../lib/metrics/observation-metric-analyzer.js';
 import { Danger } from '../lib/models/danger.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
-import { environmentSchema } from '../lib/zod/observation-schema.js';
+import { environmentSchema, observationSchema } from '../lib/zod/observation-schema.js';
 import { updateInstallationAgentData } from './installation-service.js';
 
 async function getObservations(
@@ -83,18 +85,19 @@ type PutObservationRequest = {
   dangers: Danger[];
 };
 
-async function putObservation(
-  user: User,
-  agentToken: string,
-  requestData: PutObservationRequest,
-) {
+async function putObservation(user: User, agentToken: string, requestData: any) {
   if (user.tier === Tier.Expired) {
     throw new UpgradeTierError('Expired accounts cannot submit observations');
   }
 
-  requestData.userId = user.userId;
-  requestData.timestamp = new Date().toISOString();
-  requestData.dangers = createDangers(requestData.environment, requestData.logs);
+  let putObservationRequest: PutObservationRequest = requestData;
+
+  putObservationRequest.userId = user.userId;
+  putObservationRequest.timestamp = new Date().toISOString();
+  putObservationRequest.dangers = createDangers(
+    requestData.environment,
+    requestData.logs,
+  );
 
   const params = {
     TableName: process.env.OBSERVATION_TABLE,
@@ -151,8 +154,23 @@ async function putObservation(
       requestData.installation_id,
       requestData.dangers,
     );
+
+    try {
+      const observationMetricAnalyzer = new ObservationMetricAnalyzer(
+        new MetricStore(
+          process.env.TIMESTREAM_METRIC_REGION as string,
+          process.env.TIMESTREAM_METRIC_DATABASE as string,
+          process.env.TIMESTREAM_METRIC_TABLE as string,
+        ),
+      );
+
+      observationMetricAnalyzer.analyzeAndStoreMetrics(
+        requestData as z.infer<typeof observationSchema>,
+      );
+    } catch (error) {
+      throw new Error('Failed with timestream' + error);
+    }
   } catch (error) {
-    // throw new FailedToSubmitObservationError('Failed to submit observation');
     throw error;
   }
 }

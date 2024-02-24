@@ -9,6 +9,7 @@ import {
   deleteUserAlarmConfiguration,
   fetchUserAlarmConfigurations,
   getAlarmConfigurations,
+  updateUserAlarmConfiguration,
 } from '../services/alarm-service';
 
 export async function GetAlarmConfigurationsHandler(
@@ -41,9 +42,12 @@ export async function CreateUserAlarmConfigurationHandler(
     let payload: z.infer<typeof createAlarmSchema> = req.body;
     createAlarmSchema.parse(payload);
 
-    await createUserAlarmConfiguration(req.user.userId, req.body);
+    const alarmConfiguration = await createUserAlarmConfiguration(
+      req.user.userId,
+      req.body,
+    );
 
-    return res.status(StatusCodes.CREATED).json();
+    return res.status(StatusCodes.CREATED).json({ body: alarmConfiguration });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
@@ -59,5 +63,22 @@ export async function DeleteUserAlarmConfigurationHandler(
     return res.status(StatusCodes.NO_CONTENT).json();
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error.message });
+  }
+}
+
+export async function PutUserAlarmConfigurationHandler(req: BaseRequest, res: Response) {
+  try {
+    let payload: z.infer<typeof createAlarmSchema> = req.body;
+    createAlarmSchema.parse(payload);
+
+    let userAlarmConfiguration = await updateUserAlarmConfiguration(
+      req.user.userId,
+      req.params.alarmId,
+      req.body,
+    );
+
+    return res.status(StatusCodes.OK).json({ body: userAlarmConfiguration });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 }

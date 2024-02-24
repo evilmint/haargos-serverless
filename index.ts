@@ -18,6 +18,7 @@ import {
   DeleteUserAlarmConfigurationHandler,
   GetAlarmConfigurationsHandler,
   GetUserAlarmConfigurationsHandler,
+  PutUserAlarmConfigurationHandler,
 } from './handlers/alarms';
 import { GetAgentConfigHandler } from './handlers/config';
 import {
@@ -104,6 +105,7 @@ app.get(
 app.get('/alarms/configurations', [jwtCheck, authorize], GetAlarmConfigurationsHandler);
 app.get('/alarms', [jwtCheck, authorize], GetUserAlarmConfigurationsHandler);
 app.post('/alarms', [jwtCheck, authorize], CreateUserAlarmConfigurationHandler);
+app.put('/alarms/:alarmId', [jwtCheck, authorize], PutUserAlarmConfigurationHandler);
 app.delete(
   '/alarms/:alarmId',
   [jwtCheck, authorize],

@@ -5,6 +5,8 @@ import {
   PutCommandInput,
   QueryCommand,
   QueryCommandInput,
+  UpdateCommand,
+  UpdateCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import moment from 'moment';
@@ -12,10 +14,25 @@ import { dynamoDbClient } from '../lib/dynamodb';
 
 export interface AlarmConfiguration {
   name: string;
+  requires_supervisor: boolean;
   alarmTypes: AlarmType[];
 }
 
-type AlarmCategory = 'ADDON' | 'CORE' | 'NETWORK' | 'DEVICE';
+type AlarmCategory =
+  | 'ADDON'
+  | 'CORE'
+  | 'NETWORK'
+  | 'DEVICE'
+  | 'ZIGBEE'
+  | 'LOGS'
+  | 'AUTOMATIONS'
+  | 'SCRIPTS'
+  | 'SCENES';
+
+export interface OlderThanOption {
+  timeComponent: TimeComponent;
+  componentValue: number;
+}
 
 export interface UserAlarmConfiguration {
   type: string;
@@ -24,11 +41,17 @@ export interface UserAlarmConfiguration {
   configuration: {
     datapointCount?: number;
     addons?: { slug: string }[];
+    scripts?: { alias: string }[];
+    scenes?: { id: string }[];
+    automations?: { id: string; name: string }[];
+    zigbee?: { ieee: string }[];
+    olderThan?: OlderThanOption;
     notificationMethod: 'E-mail';
   };
 }
 
 export interface UserAlarmConfigurationOutput {
+  id: string;
   type: string;
   category: AlarmCategory;
   name: string;
@@ -40,17 +63,23 @@ export interface UserAlarmConfigurationOutput {
   };
 }
 
+export interface AlarmTypeComponent {
+  type: string;
+}
+
 export interface AlarmType {
   name: string;
   type: string;
   category: AlarmCategory;
   datapoints: 'NONE' | 'MISSING' | 'PRESENT';
   disabled: boolean;
+  components?: AlarmTypeComponent[];
 }
 
 let staticConfigurations: AlarmConfiguration[] = [
   {
     name: 'HomeAssistant Core',
+    requires_supervisor: false,
     alarmTypes: [
       {
         name: 'Ping unavailability',
@@ -89,11 +118,36 @@ let staticConfigurations: AlarmConfiguration[] = [
         disabled: false,
         category: 'CORE',
       },
+      {
+        name: 'Automation last trigger older than',
+        datapoints: 'PRESENT',
+        type: 'automations_last_trigger_older_than',
+        disabled: false,
+        category: 'AUTOMATIONS',
+        components: [{ type: 'older_than_picker' }],
+      },
+      {
+        name: 'Scene last trigger older than',
+        datapoints: 'PRESENT',
+        type: 'automations_last_trigger_older_than',
+        disabled: false,
+        category: 'SCENES',
+        components: [{ type: 'older_than_picker' }],
+      },
+      {
+        name: 'Script last trigger older than',
+        datapoints: 'PRESENT',
+        type: 'automations_last_trigger_older_than',
+        disabled: false,
+        category: 'SCRIPTS',
+        components: [{ type: 'older_than_picker' }],
+      },
       //{ name: 'Unexpected reboot', datapoints: 'MISSING',type: 'host_unexpected_reboot', disabled: false },
     ],
   },
   {
     name: 'Add-ons',
+    requires_supervisor: true,
     alarmTypes: [
       {
         name: 'Stopped',
@@ -126,55 +180,78 @@ let staticConfigurations: AlarmConfiguration[] = [
       //{ name: 'Error logs', type: 'addon_error_logs', disabled: false },
     ],
   },
-  //   {
-  //     name: 'Devices',
-  //     alarmTypes: [
-  //       {
-  //         name: 'Device offline',
-  //         datapoints: 'PRESENT',
-  //         type: 'device_offline',
-  //         disabled: false,
-  //         category: 'DEVICE',
-  //       },
-  //       {
-  //         name: 'Battery low',
-  //         datapoints: 'PRESENT',
-  //         type: 'device_battery_low',
-  //         disabled: false,
-  //         category: 'DEVICE',
-  //       },
-  //       {
-  //         name: 'Unavailable entities',
-  //         datapoints: 'PRESENT',
-  //         type: 'device_unavailable_entities',
-  //         disabled: false,
-  //         category: 'DEVICE',
-  //       },
-  //     ],
-  //   },
   {
-    name: 'Network',
+    name: 'Zigbee',
+    requires_supervisor: false,
     alarmTypes: [
       {
-        name: 'Network down',
-        datapoints: 'MISSING',
-        type: 'network_down',
+        name: 'Device low LQI',
+        datapoints: 'PRESENT',
+        type: 'device_offline',
         disabled: false,
-        category: 'NETWORK',
+        category: 'ZIGBEE',
       },
       {
-        name: 'High network latency',
+        name: 'Last updated older than',
         datapoints: 'PRESENT',
-        type: 'network_high_latency',
+        type: 'zigbee_last_updated_older_than',
         disabled: false,
-        category: 'NETWORK',
+        category: 'ZIGBEE',
+        components: [{ type: 'older_than_picker' }],
       },
       {
-        name: 'High network traffic',
+        name: 'Battery low',
         datapoints: 'PRESENT',
-        type: 'network_high_traffic',
+        type: 'device_battery_low',
         disabled: false,
-        category: 'NETWORK',
+        category: 'ZIGBEE',
+      },
+      // {
+      //   name: 'Unavailable entities',
+      //   datapoints: 'PRESENT',
+      //   type: 'device_unavailable_entities',
+      //   disabled: false,
+      //   category: 'DEVICE',
+      // },
+    ],
+  },
+  // {
+  //   name: 'Network',
+  //   requires_supervisor: false,
+  //   alarmTypes: [
+  //     {
+  //       name: 'Network down',
+  //       datapoints: 'MISSING',
+  //       type: 'network_down',
+  //       disabled: false,
+  //       category: 'NETWORK',
+  //     },
+  //     {
+  //       name: 'High network latency',
+  //       datapoints: 'PRESENT',
+  //       type: 'network_high_latency',
+  //       disabled: false,
+  //       category: 'NETWORK',
+  //     },
+  //     {
+  //       name: 'High network traffic',
+  //       datapoints: 'PRESENT',
+  //       type: 'network_high_traffic',
+  //       disabled: false,
+  //       category: 'NETWORK',
+  //     },
+  //   ],
+  // },
+  {
+    name: 'Logs',
+    requires_supervisor: false,
+    alarmTypes: [
+      {
+        name: 'Contains string',
+        datapoints: 'PRESENT',
+        type: 'logs_contain_string',
+        disabled: false,
+        category: 'LOGS',
       },
     ],
   },
@@ -204,13 +281,10 @@ export async function fetchUserAlarmConfigurations(
   let alarmNameByType = staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 
   let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
 
@@ -224,20 +298,28 @@ export async function fetchUserAlarmConfigurations(
 export async function createAlarmConfiguration(
   userId: string,
   alarmConfiguration: UserAlarmConfiguration,
-) {
+): Promise<UserAlarmConfigurationOutput> {
   const id = require('crypto').randomUUID();
+
+  const item = {
+    id: id,
+    created_at: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
+    user_id: userId,
+    deleted: false,
+    ...alarmConfiguration,
+  };
 
   const putParams: PutCommandInput = {
     TableName: process.env.ALARM_CONFIGURATION_TABLE,
-    Item: {
-      id: id,
-      created_at: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
-      user_id: userId,
-      deleted: false,
-      ...alarmConfiguration,
-    },
+    Item: item,
   };
+
   await dynamoDbClient.send(new PutCommand(putParams));
+
+  let alarmNameByTypeArray = alarmNameByType();
+  item.name = alarmNameByTypeArray[item.type];
+
+  return item as UserAlarmConfigurationOutput;
 }
 
 async function fetchUserAlarmConfiguration(
@@ -258,21 +340,11 @@ async function fetchUserAlarmConfiguration(
 
   const response = await dynamoDbClient.send(new QueryCommand(params));
 
-  let alarmNameByType = staticConfigurations
-    .map(a => a.alarmTypes)
-    .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-
   let items = response.Items ? (response.Items as UserAlarmConfigurationOutput[]) : [];
 
+  let alarmNameByTypeArray = alarmNameByType();
   items.forEach(i => {
-    i.name = alarmNameByType[i.type];
+    i.name = alarmNameByTypeArray[i.type];
   });
 
   return items.length > 0 ? items[0] : null;
@@ -299,4 +371,87 @@ export async function deleteUserAlarmConfiguration(
   };
 
   await dynamoDbClient.send(new DeleteItemCommand(deleteParams));
+}
+
+type TimeComponent = 'Months' | 'Days' | 'Hours' | 'Minutes';
+
+export interface OlderThanOption {
+  timeComponent: TimeComponent;
+  componentValue: number;
+}
+
+export async function updateUserAlarmConfiguration(
+  userId: string,
+  alarmId: string,
+  alarmConfiguration: UserAlarmConfiguration,
+): Promise<UserAlarmConfigurationOutput> {
+  const currentAlarmConfiguration = await fetchUserAlarmConfiguration(alarmId);
+
+  if (!currentAlarmConfiguration) {
+    throw Error('No alarm found');
+  }
+
+  const userPrimaryKey = {
+    user_id: userId,
+    created_at: currentAlarmConfiguration.created_at,
+  };
+
+  let updateExpression =
+    'SET #configuration.#datapointCount = :datapointCount, #configuration.#notificationMethod = :notificationMethod';
+  let expressionAttributeValues = {
+    ':datapointCount': alarmConfiguration.configuration.datapointCount ?? 0,
+    ':notificationMethod': alarmConfiguration.configuration.notificationMethod,
+  };
+  let expressionAttributeNames = {
+    '#configuration': 'configuration',
+    '#datapointCount': 'datapointCount',
+    '#notificationMethod': 'notificationMethod',
+  };
+
+  // Conditionally add other parts based on their existence
+  const attributesToUpdate = [
+    'addons',
+    'zigbee',
+    'scripts',
+    'scenes',
+    'automations',
+    'olderThan',
+  ];
+  attributesToUpdate.forEach(attr => {
+    if (
+      alarmConfiguration.configuration[attr] !== undefined &&
+      alarmConfiguration.configuration[attr] !== null
+    ) {
+      updateExpression += `, #configuration.#${attr} = :${attr}`;
+      expressionAttributeNames[`#${attr}`] = attr;
+      expressionAttributeValues[`:${attr}`] = alarmConfiguration.configuration[attr];
+    }
+  });
+
+  const updateParams: UpdateCommandInput = {
+    TableName: process.env.ALARM_CONFIGURATION_TABLE,
+    Key: userPrimaryKey,
+    UpdateExpression: updateExpression,
+    ExpressionAttributeNames: expressionAttributeNames,
+    ExpressionAttributeValues: expressionAttributeValues,
+    ReturnValues: 'ALL_NEW',
+  };
+
+  const result = await dynamoDbClient.send(new UpdateCommand(updateParams));
+  const item = result.Attributes as UserAlarmConfigurationOutput;
+
+  const alarmNameByTypeArray = alarmNameByType();
+  item.name = alarmNameByTypeArray[item.type];
+
+  return item;
+}
+
+function alarmNameByType(): Record<string, string> {
+  return staticConfigurations
+    .map(a => a.alarmTypes)
+    .flat()
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 }
