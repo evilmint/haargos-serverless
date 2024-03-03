@@ -15,45 +15,87 @@ export default class ObservationMetricAnalyzer {
   ): Promise<void> {
     const records: any[] = [];
 
-    // Check for high CPU usage
+    // Existing checks for high CPU usage and low LQI in Zigbee devices
+    this.checkHighCPUUsage(observationData, records);
+    this.checkLowZigbeeLQI(observationData, records);
+
+    // New analyses
+    this.checkLowMemory(observationData, records);
+    this.checkHighDiskUsage(observationData, records);
+    this.checkNewHAVersion(observationData, records);
+    this.checkPingUnavailability(observationData, records);
+
+    // Store all generated records
+    if (records.length > 0) {
+      await this.metricStore.storeMetrics(records);
+    }
+  }
+
+  private checkHighCPUUsage(
+    observationData: z.infer<typeof observationSchema>,
+    records: any[],
+  ): void {
     const isHighCPUUsage = (observationData.environment?.cpu?.load ?? 0) > 1;
     if (isHighCPUUsage) {
       records.push(this.createCpuUsageRecord(observationData));
     }
+  }
 
-    // Check for low LQI in Zigbee devices
+  private checkLowZigbeeLQI(
+    observationData: z.infer<typeof observationSchema>,
+    records: any[],
+  ): void {
     observationData.zigbee?.devices.forEach(device => {
-      const isLowLQI = device.lqi < 20; // TODO: Unify logic across files. Maybe this should be part of the observationSchema
-
+      const isLowLQI = device.lqi < 20;
       if (isLowLQI) {
         records.push(this.createZigbeeLqiRecord(observationData, device));
       }
     });
+  }
 
-    // Low memory
+  private checkLowMemory(
+    observationData: z.infer<typeof observationSchema>,
+    records: any[],
+  ): void {
+    const isLowMemory =
+      (observationData.environment?.memory?.used ?? 0) /
+        (observationData.environment?.memory?.total ?? 1) >
+      0.8;
+    if (isLowMemory) {
+      records.push(this.createLowMemoryRecord(observationData));
+    }
+  }
 
-    // high disk usage
+  private checkHighDiskUsage(
+    observationData: z.infer<typeof observationSchema>,
+    records: any[],
+  ): void {
+    observationData.environment?.storage?.forEach(storage => {
+      const usagePercentage = parseInt(storage.use_percentage.replace('%', ''));
+      if (usagePercentage > 80) {
+        records.push(this.createHighDiskUsageRecord(observationData, storage));
+      }
+    });
+  }
 
-    // const volumeUsagePercentage =
-    //   observationData.environment.storage?.reduce((highest, current) => {
-    //     const cur = parseInt(current.use_percentage.slice(0, -1));
-    //     return cur > highest ? cur : highest;
-    //   }, {}) ?? 0;
+  private checkNewHAVersion(
+    observationData: z.infer<typeof observationSchema>,
+    records: any[],
+  ): void {
+    // Implement logic to check for new HA version and generate a record if needed
+  }
 
-    // if (volumeUsagePercentage > 80) {
-    //     records.push(this.createHighVolumeUsageRecord(observationData, device));
-    // }
-
-    // New ha version
-    // ping unavailability
-
-    await this.metricStore.storeMetrics(records);
+  private checkPingUnavailability(
+    observationData: z.infer<typeof observationSchema>,
+    records: any[],
+  ): void {
+    // Implement logic to check for ping unavailability and generate a record if needed
   }
 
   private createCpuUsageRecord(observationData: z.infer<typeof observationSchema>): any {
     return createRecord(
       observationData.installation_id,
-      'cpu_usage',
+      'cpu_usage_below_threshold',
       (observationData.environment.cpu?.load ?? 0).toString(),
       new Date().getTime().toString(),
     );
@@ -65,10 +107,31 @@ export default class ObservationMetricAnalyzer {
   ): any {
     return createRecord(
       observationData.installation_id,
-      'zigbee_lqi',
+      'zigbee_lqi_below_threshold',
       device.lqi.toString(),
       new Date().getTime().toString(),
       [{ Name: 'ieee', Value: device.ieee }],
+    );
+  }
+
+  private createLowMemoryRecord(observationData: z.infer<typeof observationSchema>): any {
+    return createRecord(
+      observationData.installation_id,
+      'memory_below_threshold',
+      (observationData.environment.memory?.free ?? 0).toString(),
+      new Date().getTime().toString(),
+    );
+  }
+
+  private createHighDiskUsageRecord(
+    observationData: z.infer<typeof observationSchema>,
+    storage: any,
+  ): any {
+    return createRecord(
+      observationData.installation_id,
+      'high_disk_usage',
+      (observationData.environment.memory?.free ?? 0).toString(),
+      new Date().getTime().toString(),
     );
   }
 }
