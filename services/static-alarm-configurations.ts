@@ -11,14 +11,14 @@ export const staticConfigurations: AlarmConfiguration[] = [
         category: 'CORE',
       },
       {
-        name: 'Memory usage',
+        name: 'Memory usage %',
         datapoints: 'PRESENT',
         type: 'host_memory_usage',
         disabled: false,
         category: 'CORE',
       },
       {
-        name: 'CPU usage',
+        name: 'CPU usage %',
         datapoints: 'PRESENT',
         type: 'host_cpu_usage',
         disabled: false,
@@ -34,7 +34,7 @@ export const staticConfigurations: AlarmConfiguration[] = [
       //{ name: 'Error logs detected', datapoints: 'MISSING',type: 'ha_error_logs', disabled: false, category: 'CORE', },
       //{ name: 'Service unavailable', datapoints: 'MISSING',type: 'ha_service_unavailable', disabled: false, category: 'CORE', },
       {
-        name: 'Disk usage',
+        name: 'Disk usage %',
         datapoints: 'PRESENT',
         type: 'host_disk_usage',
         disabled: false,
@@ -86,14 +86,14 @@ export const staticConfigurations: AlarmConfiguration[] = [
         category: 'ADDON',
       },
       {
-        name: 'Addon CPU usage',
+        name: 'Addon CPU usage %',
         datapoints: 'PRESENT',
         type: 'addon_cpu_usage',
         disabled: false,
         category: 'ADDON',
       },
       {
-        name: 'Addon memory usage',
+        name: 'Addon memory usage %',
         datapoints: 'PRESENT',
         type: 'addon_memory_usage',
         disabled: false,
@@ -122,7 +122,7 @@ export const staticConfigurations: AlarmConfiguration[] = [
         components: [{ type: 'older_than_picker' }],
       },
       {
-        name: 'Zigbee device battery',
+        name: 'Zigbee device battery %',
         datapoints: 'PRESENT',
         type: 'zigbee_device_battery_percentage',
         disabled: false,
@@ -184,6 +184,9 @@ export interface UserAlarmConfiguration {
     addons?: { slug: string }[];
     scripts?: { alias: string }[];
     scenes?: { id: string }[];
+    storages?: { name: string }[];
+    statFunction?: { function: string };
+    ltGtThan?: { comparator: string; value: number; valueType: string };
     automations?: { id: string; name: string }[];
     zigbee?: { ieee: string }[];
     olderThan?: OlderThanOption;

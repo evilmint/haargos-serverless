@@ -15,6 +15,21 @@ const AlarmCategory = z.enum([
 const AlarmConfigurationSchema = z
   .object({
     datapointCount: z.number().optional(),
+    statFunction: z.object({
+      function: z.string(),
+    }),
+    ltGtThan: z
+      .object({
+        comparator: z.string(),
+        value: z.number(),
+        valueType: z.string(),
+      })
+      .optional()
+      .nullable(),
+    storages: z
+      .array(z.object({ name: z.string() }))
+      .optional()
+      .nullable(),
     olderThan: z
       .object({
         componentValue: z.number(),

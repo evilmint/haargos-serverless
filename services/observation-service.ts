@@ -60,6 +60,23 @@ async function getObservations(
           delete device.lqi;
           delete device.battery;
         });
+
+        if (observation.environment?.storage) {
+          let storageKeys = new Set();
+          let uniqueStorages: any[] = [];
+
+          observation.environment.storage.forEach(storage => {
+            if (!storageKeys.has(storage.name)) {
+              storageKeys.add(storage.name);
+              uniqueStorages.push(storage);
+            }
+          });
+
+          observation.environment = {
+            ...observation.environment,
+            storage: uniqueStorages,
+          };
+        }
       });
     }
 

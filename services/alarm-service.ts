@@ -42,10 +42,13 @@ export async function fetchUserAlarmConfigurations(
   let alarmNameByType = staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce((acc, alarmType) => {
-      acc[alarmType.type] = alarmType.name;
-      return acc;
-    }, {} as Record<string, string>);
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
   let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
 
@@ -167,6 +170,38 @@ export async function updateUserAlarmConfiguration(
     '#notificationMethod': 'notificationMethod',
   };
 
+  if (alarmConfiguration.configuration.statFunction) {
+    expressionAttributeNames[`#statFunction`] = 'statFunction';
+    expressionAttributeNames[`#function`] = 'function';
+    expressionAttributeValues[`:statFunction`] =
+      alarmConfiguration.configuration.statFunction.function;
+    updateExpression += ', #configuration.#statFunction.#function = :statFunction';
+  }
+
+  if (alarmConfiguration.configuration.storages) {
+    expressionAttributeNames[`#storages`] = 'storages';
+    expressionAttributeValues[`:storages`] = alarmConfiguration.configuration.storages;
+    updateExpression += ', #configuration.#storages = :storages';
+  }
+
+  if (alarmConfiguration.configuration.ltGtThan) {
+    expressionAttributeNames[`#ltGtThan`] = 'ltGtThan';
+    expressionAttributeNames[`#ltGtThanComparator`] = 'comparator';
+    expressionAttributeNames[`#ltGtThanValue`] = 'value';
+    expressionAttributeNames[`#ltGtThanValueType`] = 'valueType';
+    expressionAttributeValues[`:ltGtThanValue`] =
+      alarmConfiguration.configuration.ltGtThan.value;
+    expressionAttributeValues[`:ltGtThanValueType`] =
+      alarmConfiguration.configuration.ltGtThan.valueType;
+    expressionAttributeValues[`:ltGtThanComparator`] =
+      alarmConfiguration.configuration.ltGtThan.comparator;
+    updateExpression +=
+      ', #configuration.#ltGtThan.#ltGtThanComparator = :ltGtThanComparator';
+    updateExpression +=
+      ', #configuration.#ltGtThan.#ltGtThanValueType = :ltGtThanValueType';
+    updateExpression += ', #configuration.#ltGtThan.#ltGtThanValue = :ltGtThanValue';
+  }
+
   // Conditionally add other parts based on their existence
   const attributesToUpdate = [
     'addons',
@@ -209,8 +244,11 @@ function alarmNameByType(): Record<string, string> {
   return staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce((acc, alarmType) => {
-      acc[alarmType.type] = alarmType.name;
-      return acc;
-    }, {} as Record<string, string>);
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 }

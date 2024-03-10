@@ -51,7 +51,7 @@ provider:
           Action:
             - timestream:WriteRecords
             - timestream:DescribeEndpoints
-          Resource: "*"
+          Resource: '*'
 
         - Effect: Allow
           Action:
@@ -253,7 +253,6 @@ functions:
 
 resources:
   Resources:
-  
     # Timestream
     MetricsDatabase:
       Type: 'AWS::Timestream::Database'
@@ -555,13 +554,13 @@ resources:
         TableName: ${self:custom.userTableName}
   Outputs:
     MetricsDatabaseArn:
-      Description: "ARN of the haargos metrics database"
+      Description: 'ARN of the haargos metrics database'
       Value:
         Fn::GetAtt:
           - MetricsDatabase
           - Arn
     MetricsTableArn:
-      Description: "ARN of the haargos metrics table"
+      Description: 'ARN of the haargos metrics table'
       Value:
         Fn::GetAtt:
           - MetricsTable

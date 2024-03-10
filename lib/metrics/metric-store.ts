@@ -1,6 +1,6 @@
 import {
-    TimestreamWriteClient,
-    WriteRecordsCommand,
+  TimestreamWriteClient,
+  WriteRecordsCommand,
 } from '@aws-sdk/client-timestream-write';
 
 export default class MetricStore {
