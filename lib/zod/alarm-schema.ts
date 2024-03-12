@@ -15,46 +15,64 @@ const AlarmCategory = z.enum([
 const AlarmConfigurationSchema = z
   .object({
     datapointCount: z.number().optional(),
-    statFunction: z.object({
-      function: z.string(),
-    }),
+    statFunction: z
+      .object({
+        function: z.string(),
+      })
+      .strict()
+      .optional()
+      .nullable(),
     ltGtThan: z
       .object({
         comparator: z.string(),
         value: z.number(),
         valueType: z.string(),
       })
+      .strict()
       .optional()
       .nullable(),
     storages: z
-      .array(z.object({ name: z.string() }))
+      .array(z.object({ name: z.string() }).strict())
       .optional()
       .nullable(),
+    logTypes: z
+      .array(z.object({ logType: z.string() }).strict())
+      .nullable()
+      .optional(),
+    textCondition: z
+      .object({
+        text: z.string(),
+        matcher: z.enum(['exactly', 'prefix', 'suffix', 'contains']),
+        caseSensitive: z.boolean(),
+      })
+      .nullable()
+      .optional(),
     olderThan: z
       .object({
         componentValue: z.number(),
         timeComponent: z.enum(['Minutes', 'Hours', 'Days', 'Months']),
       })
+      .strict()
       .nullable()
       .optional(),
     addons: z
-      .array(z.object({ slug: z.string() }))
+      .array(z.object({ slug: z.string() }).strict())
       .optional()
       .nullable(),
     scripts: z
-      .array(z.object({ alias: z.string() }))
+      .array(z.object({ alias: z.string() }).strict())
       .optional()
       .nullable(),
     scenes: z
-      .array(z.object({ id: z.string() }))
+      .array(z.object({ id: z.string() }).strict())
       .optional()
       .nullable(),
     automations: z
-      .array(z.object({ name: z.string(), id: z.string() }))
+      .array(z.object({ name: z.string(), id: z.string() }).strict())
       .optional()
       .nullable(),
     zigbee: z
-      .array(z.object({ ieee: z.string() }))
+      .array(z.object({ ieee: z.string() }).strict())
       .optional()
       .nullable(),
     notificationMethod: z.literal('E-mail'),

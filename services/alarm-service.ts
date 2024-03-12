@@ -42,13 +42,10 @@ export async function fetchUserAlarmConfigurations(
   let alarmNameByType = staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 
   let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
 
@@ -178,6 +175,32 @@ export async function updateUserAlarmConfiguration(
     updateExpression += ', #configuration.#statFunction.#function = :statFunction';
   }
 
+  if (alarmConfiguration.configuration.logTypes) {
+    expressionAttributeNames[`#logTypes`] = 'logTypes';
+    expressionAttributeValues[`:logTypes`] = alarmConfiguration.configuration.logTypes;
+    updateExpression += ', #configuration.#logTypes = :logTypes';
+  }
+
+  if (alarmConfiguration.configuration.textCondition) {
+    expressionAttributeNames[`#textCondition`] = 'textCondition';
+    expressionAttributeNames[`#matcher`] = 'matcher';
+    expressionAttributeValues[`:matcher`] =
+      alarmConfiguration.configuration.textCondition.matcher;
+    updateExpression += ', #configuration.#textCondition.#matcher = :matcher';
+
+    expressionAttributeNames[`#textConditionText`] = 'text';
+    expressionAttributeValues[`:textConditionText`] =
+      alarmConfiguration.configuration.textCondition.text;
+    updateExpression +=
+      ', #configuration.#textCondition.#textConditionText = :textConditionText';
+
+    expressionAttributeNames[`#textConditionCS`] = 'caseSensitive';
+    expressionAttributeValues[`:textConditionCS`] =
+      alarmConfiguration.configuration.textCondition.caseSensitive;
+    updateExpression +=
+      ', #configuration.#textCondition.#textConditionCS = :textConditionCS';
+  }
+
   if (alarmConfiguration.configuration.storages) {
     expressionAttributeNames[`#storages`] = 'storages';
     expressionAttributeValues[`:storages`] = alarmConfiguration.configuration.storages;
@@ -244,11 +267,8 @@ function alarmNameByType(): Record<string, string> {
   return staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 }

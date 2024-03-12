@@ -142,7 +142,7 @@ export const staticConfigurations: AlarmConfiguration[] = [
     requires_supervisor: false,
     alarmTypes: [
       {
-        name: 'Contains string',
+        name: 'Text condition',
         datapoints: 'PRESENT',
         type: 'logs_contain_string',
         disabled: false,
@@ -184,6 +184,8 @@ export interface UserAlarmConfiguration {
     addons?: { slug: string }[];
     scripts?: { alias: string }[];
     scenes?: { id: string }[];
+    logTypes?: { logType: string; }[];
+    textCondition?: { matcher: string; text: string; caseSensitive: boolean };
     storages?: { name: string }[];
     statFunction?: { function: string };
     ltGtThan?: { comparator: string; value: number; valueType: string };
