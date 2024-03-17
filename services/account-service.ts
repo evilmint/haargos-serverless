@@ -35,12 +35,7 @@ async function deleteAccount(userId: string, secret: string) {
   }
 }
 
-async function updateAccount(
-  userId: string,
-  secret: string,
-  email: string,
-  fullName: string,
-) {
+async function updateAccount(userId: string, secret: string, email: string, fullName: string) {
   try {
     const userPrimaryKey = {
       userId: userId,
@@ -96,11 +91,7 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
 
     const queryResult = await dynamoDbClient.send(new QueryCommand(queryParams));
 
-    if (
-      (queryResult.Count ?? 0) > 0 &&
-      queryResult.Items &&
-      queryResult.Items?.length > 0
-    ) {
+    if ((queryResult.Count ?? 0) > 0 && queryResult.Items && queryResult.Items?.length > 0) {
       // A user with this email already exists, return that record
       return queryResult.Items[0];
     }

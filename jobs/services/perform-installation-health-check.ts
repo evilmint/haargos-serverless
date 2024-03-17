@@ -1,10 +1,13 @@
-import { ScanCommand, TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
+import { TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import axios from 'axios';
 import _ from 'lodash';
 import { performance } from 'perf_hooks';
 import { dynamoDbClient } from '../../lib/dynamodb.js';
 import { isLocalDomain } from '../../lib/local-domain.js';
+import MetricAnalyzer, { InstallationPing } from '../../lib/metrics/metric-analyzer.js';
+import MetricStore from '../../lib/metrics/metric-store.js';
+import { getAllInstallations } from '../../services/installation-service.js';
 
 type InstallationItem = {
   id?: string;
@@ -15,38 +18,42 @@ type InstallationItem = {
   health_statuses: any[];
 };
 
-export async function updateInstallationHealthyStatus() {
-  const scanParams = {
-    TableName: process.env.INSTALLATION_TABLE,
-  };
-
-  const scanResult = await dynamoDbClient.send(new ScanCommand(scanParams));
-  const instances: InstallationItem[] = (scanResult.Items ?? [])
+export async function performInstallationHealthCheck() {
+  const publicInstallations: InstallationItem[] = ((await getAllInstallations()).Items ?? [])
     .map(item => unmarshall(item) as InstallationItem)
     .filter(i => {
+      // Filter out private instances or instances without url
       if (!i.urls.instance?.url || i.urls.instance.url_type == 'PRIVATE') {
         return false;
       }
 
       const url = new URL(i.urls.instance.url);
 
+      // Instance's public address must be verified and must not be a local domain
       return i.urls.instance?.is_verified == true && !isLocalDomain(url);
     });
 
-  const chunkSize = 10;
-  const chunks = _.chunk(instances, chunkSize);
+  const metricAnalyzer = new MetricAnalyzer(
+    new MetricStore(
+      process.env.TIMESTREAM_METRIC_REGION as string,
+      process.env.TIMESTREAM_METRIC_DATABASE as string,
+      process.env.TIMESTREAM_METRIC_TABLE as string,
+    ),
+  );
+
+  const chunks = _.chunk(publicInstallations, 10);
 
   for (const chunk of chunks) {
     const promises = chunk.map(instance => queryInstanceHealth(instance));
     const results = await Promise.all(promises);
 
-    const transactItems = results.map(({ item, healthy, time }) =>
-      buildUpdateAction(
-        item.id ?? '',
-        item.userId ?? '',
+    const transactItems = results.map(({ item: installation, healthy, time }) =>
+      buildInstallationHealthStatusesUpdate(
+        installation.id ?? '',
+        installation.userId ?? '',
         healthy,
         time ?? 0,
-        item.health_statuses,
+        installation.health_statuses,
       ),
     );
 
@@ -55,12 +62,30 @@ export async function updateInstallationHealthyStatus() {
     };
 
     await dynamoDbClient.send(new TransactWriteItemsCommand(transactParams));
+
+    const installationPings: InstallationPing[] = results
+      .filter(i => i.item.id)
+      .map(({ item: installation, hasHomeAssistantContent, healthy, time }) => {
+        return {
+          hasHomeAssistantContent: hasHomeAssistantContent,
+          isHealthy: healthy.value,
+          responseTimeInMilliseconds: time,
+          installationId: installation.id!,
+        };
+      });
+
+    try {
+      await metricAnalyzer.analyzePingAndStoreMetrics(installationPings);
+    } catch (error) {
+      throw new Error('Failed with timestream' + error);
+    }
   }
 }
 
 type CheckInstanceHealthOutput = {
   item: InstallationItem;
   healthy: { value: boolean; last_updated: string };
+  hasHomeAssistantContent: boolean;
   time: number;
   error?: any;
 };
@@ -73,6 +98,7 @@ async function queryInstanceHealth(
   if (instanceUrl === '') {
     return {
       item,
+      hasHomeAssistantContent: false,
       time: 0,
       healthy: { value: false, last_updated: new Date().toISOString() },
       error: null,
@@ -81,25 +107,35 @@ async function queryInstanceHealth(
 
   let time = performance.now();
   let isHealthy = false;
+  let hasHomeAssistantContent: boolean = false;
 
-  // Would be nice to mark the failure type in the future.
-  // and check if the success content is Home Assistant frontend content
   try {
-    await axios.get(instanceUrl);
+    const { data } = await axios.get(instanceUrl, {
+      responseType: 'document',
+    });
+    hasHomeAssistantContent = isHomeAssistantWebsiteContent(data);
     isHealthy = true;
   } catch (error) {
-    isHealthy = false;
+    /* No action needed */
   }
 
   return {
     item,
     time: performance.now() - time,
+    hasHomeAssistantContent: hasHomeAssistantContent,
     healthy: { value: isHealthy, last_updated: new Date().toISOString() },
     error: null,
   };
 }
 
-const buildUpdateAction = (
+function isHomeAssistantWebsiteContent(data: string): boolean {
+  return (
+    data.indexOf('<home-assistant></home-assistant>') !== -1 ||
+    data.indexOf('<ha-authorize></ha-authorize>') !== -1
+  );
+}
+
+const buildInstallationHealthStatusesUpdate = (
   id: string,
   userId: string,
   healthy: { value: boolean; last_updated: string },

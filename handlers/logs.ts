@@ -3,7 +3,10 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
+import MetricAnalyzer from '../lib/metrics/metric-analyzer';
+import MetricStore from '../lib/metrics/metric-store';
 import { updateLogsSchema } from '../lib/zod/logs-schema';
+import { fetchUserAlarmConfigurations } from '../services/alarm-service';
 import { fetchLogByInstallationIdAndType, updateLogs } from '../services/log-service';
 
 const UpdateInstallationLogsHandler = async (
@@ -23,6 +26,26 @@ const UpdateInstallationLogsHandler = async (
     }
 
     await updateLogs(req.agentToken['installation_id'], payload.type, payload.content);
+
+    try {
+      const metricAnalyzer = new MetricAnalyzer(
+        new MetricStore(
+          process.env.TIMESTREAM_METRIC_REGION as string,
+          process.env.TIMESTREAM_METRIC_DATABASE as string,
+          process.env.TIMESTREAM_METRIC_TABLE as string,
+        ),
+      );
+
+      const alarmConfigurations = await fetchUserAlarmConfigurations(req.user.userId);
+
+      await metricAnalyzer.analyzeLogsAndStoreMetrics(
+        req.agentToken['installation_id'],
+        payload,
+        alarmConfigurations,
+      );
+    } catch (error) {
+      throw new Error('Failed with timestream' + error);
+    }
 
     return res.status(StatusCodes.NO_CONTENT).json();
   } catch (error) {

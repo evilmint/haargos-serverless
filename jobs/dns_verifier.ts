@@ -78,8 +78,8 @@ export const handler = async (_event: any) => {
           ':status': isVerified
             ? 'SUCCESS'
             : attempts >= attemptsAllowed
-            ? 'FAILED'
-            : 'PENDING',
+              ? 'FAILED'
+              : 'PENDING',
         },
       };
 
@@ -89,10 +89,7 @@ export const handler = async (_event: any) => {
         return {
           statusCode: StatusCodes.BAD_REQUEST,
           body: JSON.stringify(
-            'Failed updating installation ' +
-              JSON.stringify(updateParams) +
-              'error: ' +
-              error,
+            'Failed updating installation ' + JSON.stringify(updateParams) + 'error: ' + error,
           ),
         };
       }
@@ -112,10 +109,7 @@ export const handler = async (_event: any) => {
           return {
             statusCode: StatusCodes.BAD_REQUEST,
             body: JSON.stringify(
-              'Failed deleting record' +
-                JSON.stringify(deleteParams) +
-                ' error: ' +
-                error,
+              'Failed deleting record' + JSON.stringify(deleteParams) + ' error: ' + error,
             ),
           };
         }

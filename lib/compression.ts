@@ -5,11 +5,7 @@ interface Base64Response extends Response {
   isBase64Encoded: boolean;
 }
 
-function compressForAWSLambda(
-  request: Request,
-  response: Base64Response,
-  next: NextFunction,
-) {
+function compressForAWSLambda(request: Request, response: Base64Response, next: NextFunction) {
   let oldSend = response.send;
   response.send = function (data) {
     const acceptEncodingHeader = request.header('Accept-Encoding');

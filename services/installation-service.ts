@@ -1,11 +1,8 @@
-import {
-  DeleteItemCommand,
-  GetItemCommand,
-  PutItemCommand,
-} from '@aws-sdk/client-dynamodb';
+import { DeleteItemCommand, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommandInput,
   QueryCommand,
+  ScanCommand,
   UpdateCommand,
   UpdateCommandInput,
 } from '@aws-sdk/lib-dynamodb';
@@ -59,6 +56,16 @@ const getLatestRelease = async () => {
   }
 };
 
+async function getAllInstallations() {
+  const scanParams = {
+    TableName: process.env.INSTALLATION_TABLE,
+  };
+
+  const scanResult = await dynamoDbClient.send(new ScanCommand(scanParams));
+
+  return scanResult;
+}
+
 async function getInstallations(userId: string) {
   const params = {
     TableName: process.env.INSTALLATION_TABLE,
@@ -109,8 +116,7 @@ async function updateInstallationAgentData(
         userId: userId,
         id: installationId,
       },
-      UpdateExpression:
-        'SET #issues = :dangers, #lastAgentConnection = :lastAgentConnection',
+      UpdateExpression: 'SET #issues = :dangers, #lastAgentConnection = :lastAgentConnection',
       ExpressionAttributeNames: {
         '#issues': 'issues',
         '#lastAgentConnection': 'last_agent_connection',
@@ -190,8 +196,7 @@ async function updateInstallation(
           : 'PUBLIC';
 
         if (localDomain) {
-          installationParams.ExpressionAttributeValues![':verification_status'] =
-            'SUCCESS';
+          installationParams.ExpressionAttributeValues![':verification_status'] = 'SUCCESS';
 
           installationParams.ExpressionAttributeValues![':subdomain'] = '';
           installationParams.ExpressionAttributeValues![':subdomain_value'] = '';
@@ -202,11 +207,9 @@ async function updateInstallation(
             'instance',
             url,
           );
-          installationParams.ExpressionAttributeValues![':verification_status'] =
-            'PENDING';
+          installationParams.ExpressionAttributeValues![':verification_status'] = 'PENDING';
           installationParams.ExpressionAttributeValues![':subdomain'] = subdomain;
-          installationParams.ExpressionAttributeValues![':subdomain_value'] =
-            subdomain_value;
+          installationParams.ExpressionAttributeValues![':subdomain_value'] = subdomain_value;
         }
       }
     }
@@ -390,6 +393,7 @@ export {
   checkInstallation,
   createInstallation,
   deleteInstallation,
+  getAllInstallations,
   getInstallations,
   getLatestRelease,
   updateInstallation,

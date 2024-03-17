@@ -41,9 +41,7 @@ const GetInstallationSupervisorHandler = async (
   res: Response,
   _next: NextFunction,
 ) => {
-  const supervisorInfo = await fetchSupervisorInfoByInstallationId(
-    req.params.installationId,
-  );
+  const supervisorInfo = await fetchSupervisorInfoByInstallationId(req.params.installationId);
 
   return res.status(StatusCodes.OK).json({
     body: supervisorInfo,

@@ -34,18 +34,12 @@ export async function GetUserAlarmConfigurationsHandler(
   });
 }
 
-export async function CreateUserAlarmConfigurationHandler(
-  req: BaseRequest,
-  res: Response,
-) {
+export async function CreateUserAlarmConfigurationHandler(req: BaseRequest, res: Response) {
   try {
     let payload: z.infer<typeof createAlarmSchema> = req.body;
     createAlarmSchema.parse(payload);
 
-    const alarmConfiguration = await createUserAlarmConfiguration(
-      req.user.userId,
-      req.body,
-    );
+    const alarmConfiguration = await createUserAlarmConfiguration(req.user.userId, req.body);
 
     return res.status(StatusCodes.CREATED).json({ body: alarmConfiguration });
   } catch (error) {
@@ -53,10 +47,7 @@ export async function CreateUserAlarmConfigurationHandler(
   }
 }
 
-export async function DeleteUserAlarmConfigurationHandler(
-  req: BaseRequest,
-  res: Response,
-) {
+export async function DeleteUserAlarmConfigurationHandler(req: BaseRequest, res: Response) {
   try {
     await deleteUserAlarmConfiguration(req.user.userId, req.params.alarmId);
 

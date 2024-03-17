@@ -42,10 +42,13 @@ export async function fetchUserAlarmConfigurations(
   let alarmNameByType = staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce((acc, alarmType) => {
-      acc[alarmType.type] = alarmType.name;
-      return acc;
-    }, {} as Record<string, string>);
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
   let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
 
@@ -197,8 +200,7 @@ export async function updateUserAlarmConfiguration(
     expressionAttributeNames[`#textConditionCS`] = 'caseSensitive';
     expressionAttributeValues[`:textConditionCS`] =
       alarmConfiguration.configuration.textCondition.caseSensitive;
-    updateExpression +=
-      ', #configuration.#textCondition.#textConditionCS = :textConditionCS';
+    updateExpression += ', #configuration.#textCondition.#textConditionCS = :textConditionCS';
   }
 
   if (alarmConfiguration.configuration.storages) {
@@ -218,10 +220,8 @@ export async function updateUserAlarmConfiguration(
       alarmConfiguration.configuration.ltGtThan.valueType;
     expressionAttributeValues[`:ltGtThanComparator`] =
       alarmConfiguration.configuration.ltGtThan.comparator;
-    updateExpression +=
-      ', #configuration.#ltGtThan.#ltGtThanComparator = :ltGtThanComparator';
-    updateExpression +=
-      ', #configuration.#ltGtThan.#ltGtThanValueType = :ltGtThanValueType';
+    updateExpression += ', #configuration.#ltGtThan.#ltGtThanComparator = :ltGtThanComparator';
+    updateExpression += ', #configuration.#ltGtThan.#ltGtThanValueType = :ltGtThanValueType';
     updateExpression += ', #configuration.#ltGtThan.#ltGtThanValue = :ltGtThanValue';
   }
 
@@ -267,8 +267,11 @@ function alarmNameByType(): Record<string, string> {
   return staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce((acc, alarmType) => {
-      acc[alarmType.type] = alarmType.name;
-      return acc;
-    }, {} as Record<string, string>);
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 }

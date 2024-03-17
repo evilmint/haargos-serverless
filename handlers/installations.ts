@@ -54,11 +54,7 @@ interface GetInstallationsInstance {
   verification_status: string;
 }
 
-async function GetInstallationsHandler(
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) {
+async function GetInstallationsHandler(req: BaseRequest, res: Response, _next: NextFunction) {
   try {
     const latestHaRelease = await getLatestRelease();
     const result = await getInstallations(req.user.userId);
@@ -89,9 +85,7 @@ const CreateInstallationHandler = async (
     let payload: ValidatePayload = req.body;
 
     if (!payload.name) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({ error: 'Missing required fields.' });
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Missing required fields.' });
     }
 
     if (!payload.instance) {

@@ -27,10 +27,7 @@ import {
   GetInstallationsHandler,
   UpdateInstallationHandler,
 } from './handlers/installations';
-import {
-  GetInstallationLogsHandler,
-  UpdateInstallationLogsHandler,
-} from './handlers/logs';
+import { GetInstallationLogsHandler, UpdateInstallationLogsHandler } from './handlers/logs';
 
 import {
   GetInstallationNotificationsHandler,
@@ -69,11 +66,7 @@ app.use(compressForAWSLambda);
 
 // Agent
 app.put('/installations/addons', authorize, UpdateInstallationAddonsHandler);
-app.put(
-  '/installations/notifications',
-  authorize,
-  UpdateInstallationNotificationsHandler,
-);
+app.put('/installations/notifications', authorize, UpdateInstallationNotificationsHandler);
 app.put('/installations/logs', authorize, UpdateInstallationLogsHandler);
 app.put('/installations/supervisor', authorize, UpdateInstallationSupervisorHandler);
 app.put('/installations/os', authorize, UpdateInstallationOsHandler);
@@ -106,32 +99,16 @@ app.get('/alarms/configurations', [jwtCheck, authorize], GetAlarmConfigurationsH
 app.get('/alarms', [jwtCheck, authorize], GetUserAlarmConfigurationsHandler);
 app.post('/alarms', [jwtCheck, authorize], CreateUserAlarmConfigurationHandler);
 app.put('/alarms/:alarmId', [jwtCheck, authorize], PutUserAlarmConfigurationHandler);
-app.delete(
-  '/alarms/:alarmId',
-  [jwtCheck, authorize],
-  DeleteUserAlarmConfigurationHandler,
-);
+app.delete('/alarms/:alarmId', [jwtCheck, authorize], DeleteUserAlarmConfigurationHandler);
 
-app.get(
-  '/installations/:installationId/os',
-  [jwtCheck, authorize],
-  GetInstallationOsHandler,
-);
+app.get('/installations/:installationId/os', [jwtCheck, authorize], GetInstallationOsHandler);
 app.get(
   '/installations/:installationId/notifications',
   [jwtCheck, authorize],
   GetInstallationNotificationsHandler,
 );
-app.put(
-  '/installations/:installationId',
-  [jwtCheck, authorize],
-  UpdateInstallationHandler,
-);
-app.delete(
-  '/installations/:installationId',
-  [jwtCheck, authorize],
-  DeleteInstallationHandler,
-);
+app.put('/installations/:installationId', [jwtCheck, authorize], UpdateInstallationHandler);
+app.delete('/installations/:installationId', [jwtCheck, authorize], DeleteInstallationHandler);
 app.post('/account', [jwtCheck, assignEnvironments], CreateAccountHandler);
 app.put('/account', [jwtCheck, authorize], UpdateAccountHandler);
 app.delete('/account', [jwtCheck, authorize], DeleteAccountHandler);

@@ -20,6 +20,19 @@ export const updateAddonsSchema = z.array(
       url: z.string(),
       icon: z.boolean(),
       logo: z.boolean(),
+      stats: z
+        .object({
+          cpu_percent: z.number(),
+          memory_usage: z.number(),
+          memory_limit: z.number(),
+          memory_percent: z.number(),
+          network_tx: z.number(),
+          network_rx: z.number(),
+          blk_read: z.number(),
+          blk_write: z.number(),
+        })
+        .strict()
+        .optional(),
     })
     .strict(),
 );

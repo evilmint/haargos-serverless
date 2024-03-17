@@ -62,9 +62,7 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
           if (userProfile.email_verified) {
             verifySubEmail(subIdentifier);
           } else {
-            return res
-              .status(StatusCodes.FORBIDDEN)
-              .json({ body: 'Email not verified.' });
+            return res.status(StatusCodes.FORBIDDEN).json({ body: 'Email not verified.' });
           }
         }
 
@@ -129,9 +127,7 @@ function processUser(user: User): User {
   const getMostRecentActiveSubscription = (user: User): Subscription | null => {
     const activeSubscriptions = (user.subscriptions ?? [])
       .filter(sub => new Date(sub.expires_on) >= new Date())
-      .sort(
-        (a, b) => new Date(b.activated_on).getTime() - new Date(a.activated_on).getTime(),
-      );
+      .sort((a, b) => new Date(b.activated_on).getTime() - new Date(a.activated_on).getTime());
 
     return activeSubscriptions.length > 0 ? activeSubscriptions[0] : null;
   };

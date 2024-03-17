@@ -1,6 +1,8 @@
 import {
   TimestreamWriteClient,
   WriteRecordsCommand,
+  WriteRecordsCommandInput,
+  _Record,
 } from '@aws-sdk/client-timestream-write';
 
 export default class MetricStore {
@@ -14,13 +16,12 @@ export default class MetricStore {
     this.tableName = tableName;
   }
 
-  async storeMetrics(records: any[]): Promise<void> {
+  async storeMetrics(records: _Record[]): Promise<void> {
     if (records.length === 0) {
-      console.log('No metrics to store.');
       return;
     }
 
-    const writeRecordsParams = {
+    const writeRecordsParams: WriteRecordsCommandInput = {
       DatabaseName: this.databaseName,
       TableName: this.tableName,
       Records: records,

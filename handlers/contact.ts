@@ -8,10 +8,7 @@ import { Contact, postContact } from '../services/contact-service';
 
 type ContactValidatePayload = z.infer<typeof contactSchema>;
 
-export const PostContactHandler = async (
-  req: TypedRequestBody<Contact>,
-  res: Response,
-) => {
+export const PostContactHandler = async (req: TypedRequestBody<Contact>, res: Response) => {
   try {
     const payload: ContactValidatePayload = req.body;
     contactSchema.parse(payload);

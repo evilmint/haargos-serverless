@@ -1,15 +1,54 @@
+export type AlarmConfigurationType =
+  | 'zigbee_device_lqi'
+  | 'ha_ping_unavailability'
+  | 'host_memory_usage'
+  | 'host_cpu_usage'
+  | 'ha_new_version'
+  | 'host_disk_usage'
+  | 'automation_last_trigger_older_than'
+  | 'scene_last_trigger_older_than'
+  | 'script_last_trigger_older_than'
+  | 'addon_stopped'
+  | 'addon_update_available'
+  | 'addon_cpu_usage'
+  | 'addon_memory_usage'
+  | 'zigbee_device_lqi'
+  | 'zigbee_last_updated_older_than'
+  | 'zigbee_device_battery_percentage'
+  | 'logs_contain_string';
+
 export const staticConfigurations: AlarmConfiguration[] = [
+  {
+    name: 'Availability',
+    requires_supervisor: false,
+    alarmTypes: [
+      {
+        name: 'Frontend unresponsive',
+        datapoints: 'PRESENT',
+        type: 'frontend_ping_unresponsive',
+        disabled: false,
+        category: 'PING',
+      },
+      {
+        name: 'Frontend response time',
+        datapoints: 'PRESENT',
+        type: 'frontend_ping_latency',
+        disabled: false,
+        category: 'PING',
+      },
+      {
+        name: 'Frontend bad content',
+        datapoints: 'PRESENT',
+        type: 'frontend_bad_content',
+        disabled: false,
+        category: 'PING',
+      },
+    ],
+  },
   {
     name: 'HomeAssistant Core',
     requires_supervisor: false,
     alarmTypes: [
-      {
-        name: 'Ping unavailable',
-        datapoints: 'MISSING',
-        type: 'ha_ping_unavailability',
-        disabled: false,
-        category: 'CORE',
-      },
       {
         name: 'Memory usage %',
         datapoints: 'PRESENT',
@@ -43,7 +82,7 @@ export const staticConfigurations: AlarmConfiguration[] = [
       {
         name: 'Automation last trigger',
         datapoints: 'PRESENT',
-        type: 'automations_last_trigger_older_than',
+        type: 'automation_last_trigger_older_than',
         disabled: false,
         category: 'AUTOMATIONS',
         components: [{ type: 'older_than_picker' }],
@@ -51,7 +90,7 @@ export const staticConfigurations: AlarmConfiguration[] = [
       {
         name: 'Scene last trigger',
         datapoints: 'PRESENT',
-        type: 'automations_last_trigger_older_than',
+        type: 'scene_last_trigger_older_than',
         disabled: false,
         category: 'SCENES',
         components: [{ type: 'older_than_picker' }],
@@ -59,7 +98,7 @@ export const staticConfigurations: AlarmConfiguration[] = [
       {
         name: 'Script last trigger',
         datapoints: 'PRESENT',
-        type: 'automations_last_trigger_older_than',
+        type: 'script_last_trigger_older_than',
         disabled: false,
         category: 'SCRIPTS',
         components: [{ type: 'older_than_picker' }],
@@ -151,7 +190,8 @@ export const staticConfigurations: AlarmConfiguration[] = [
     ],
   },
 ];
-type AlarmCategory =
+
+export type AlarmCategory =
   | 'ADDON'
   | 'CORE'
   | 'NETWORK'
@@ -160,7 +200,8 @@ type AlarmCategory =
   | 'LOGS'
   | 'AUTOMATIONS'
   | 'SCRIPTS'
-  | 'SCENES';
+  | 'SCENES'
+  | 'PING';
 
 export interface AlarmConfiguration {
   name: string;
@@ -175,17 +216,26 @@ export interface OlderThanOption {
   componentValue: number;
 }
 
+export type AlarmConfigurationTextCondition = {
+  matcher: 'exactly' | 'prefix' | 'suffix' | 'contains';
+  text: string;
+  caseSensitive: boolean;
+};
+
 export interface UserAlarmConfiguration {
-  type: string;
+  id: string;
+  type: AlarmConfigurationType;
   category: AlarmCategory;
+  user_id: string;
+  created_at: string;
   name: string;
   configuration: {
     datapointCount?: number;
     addons?: { slug: string }[];
     scripts?: { alias: string }[];
     scenes?: { id: string }[];
-    logTypes?: { logType: string; }[];
-    textCondition?: { matcher: string; text: string; caseSensitive: boolean };
+    logTypes?: { logType: string }[];
+    textCondition?: AlarmConfigurationTextCondition;
     storages?: { name: string }[];
     statFunction?: { function: string };
     ltGtThan?: { comparator: string; value: number; valueType: string };

@@ -1,7 +1,4 @@
-import {
-  BatchWriteItemCommand,
-  BatchWriteItemCommandInput,
-} from '@aws-sdk/client-dynamodb';
+import { BatchWriteItemCommand, BatchWriteItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
@@ -28,9 +25,7 @@ export async function fetchNotificationsByInstallationId(
     },
   };
 
-  const notificationResponse = await dynamoDbClient.send(
-    new QueryCommand(notificationParams),
-  );
+  const notificationResponse = await dynamoDbClient.send(new QueryCommand(notificationParams));
 
   if (!notificationResponse.Items || notificationResponse.Items.length == 0) {
     return null;

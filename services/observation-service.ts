@@ -7,11 +7,12 @@ import { User } from '../lib/base-request.js';
 import { chunkArray } from '../lib/chunk-array.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { UpgradeTierError } from '../lib/errors.js';
+import MetricAnalyzer from '../lib/metrics/metric-analyzer.js';
 import MetricStore from '../lib/metrics/metric-store.js';
-import ObservationMetricAnalyzer from '../lib/metrics/observation-metric-analyzer.js';
 import { Danger } from '../lib/models/danger.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
 import { environmentSchema, observationSchema } from '../lib/zod/observation-schema.js';
+import { fetchUserAlarmConfigurations } from './alarm-service.js';
 import { updateInstallationAgentData } from './installation-service.js';
 
 async function getObservations(
@@ -111,10 +112,7 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
 
   putObservationRequest.userId = user.userId;
   putObservationRequest.timestamp = new Date().toISOString();
-  putObservationRequest.dangers = createDangers(
-    requestData.environment,
-    requestData.logs,
-  );
+  putObservationRequest.dangers = createDangers(requestData.environment, requestData.logs);
 
   const params = {
     TableName: process.env.OBSERVATION_TABLE,
@@ -173,7 +171,7 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
     );
 
     try {
-      const observationMetricAnalyzer = new ObservationMetricAnalyzer(
+      const observationMetricAnalyzer = new MetricAnalyzer(
         new MetricStore(
           process.env.TIMESTREAM_METRIC_REGION as string,
           process.env.TIMESTREAM_METRIC_DATABASE as string,
@@ -181,8 +179,11 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
         ),
       );
 
-      observationMetricAnalyzer.analyzeAndStoreMetrics(
+      const alarmConfigurations = await fetchUserAlarmConfigurations(user.userId);
+
+      observationMetricAnalyzer.analyzeObservationAndStoreMetrics(
         requestData as z.infer<typeof observationSchema>,
+        alarmConfigurations,
       );
     } catch (error) {
       throw new Error('Failed with timestream' + error);
@@ -212,8 +213,7 @@ function createDangers(environment: z.infer<typeof environmentSchema>, logs: str
   }
 
   if (environment.memory != null) {
-    const memoryUsagePercentage =
-      (environment.memory.used / environment.memory.total) * 100;
+    const memoryUsagePercentage = (environment.memory.used / environment.memory.total) * 100;
 
     if (memoryUsagePercentage > 70) {
       dangers.push('high_memory_usage');

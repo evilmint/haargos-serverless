@@ -238,7 +238,7 @@ functions:
       - httpApi: '*'
 
   automation:
-    handler: jobs/automation.handler
+    handler: jobs/periodic-automation.handler
     events:
       - schedule:
           rate: rate(4 hours)

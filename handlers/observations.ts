@@ -9,11 +9,7 @@ import { observationSchema } from '../lib/zod/observation-schema';
 import { checkInstallation } from '../services/installation-service';
 import { getObservations, putObservation } from '../services/observation-service';
 
-async function GetObservationsHandler(
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) {
+async function GetObservationsHandler(req: BaseRequest, res: Response, _next: NextFunction) {
   req.IN_DEV_STAGE = process.env.SLS_STAGE == 'dev';
 
   try {
@@ -43,11 +39,7 @@ async function GetObservationsHandler(
   }
 }
 
-async function PostObservationsHandler(
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) {
+async function PostObservationsHandler(req: BaseRequest, res: Response, _next: NextFunction) {
   try {
     // Move this to separate agent authorizer and create an AgentRequest to stuff this data into
     if (!req.agentToken) {
