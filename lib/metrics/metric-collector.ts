@@ -20,7 +20,7 @@ export interface InstallationPing {
   installationId: string;
 }
 
-export default class MetricAnalyzer {
+export default class MetricCollector {
   private metricStore: MetricStore;
 
   constructor(metricStore: MetricStore) {

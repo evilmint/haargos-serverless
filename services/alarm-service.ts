@@ -42,13 +42,10 @@ export async function fetchUserAlarmConfigurations(
   let alarmNameByType = staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 
   let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
 
@@ -66,11 +63,12 @@ export async function createAlarmConfiguration(
   const id = require('crypto').randomUUID();
 
   const item = {
+    ...alarmConfiguration,
     id: id,
     created_at: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
     user_id: userId,
+    state: 'OK',
     deleted: false,
-    ...alarmConfiguration,
   };
 
   const putParams: PutCommandInput = {
@@ -267,11 +265,8 @@ function alarmNameByType(): Record<string, string> {
   return staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 }

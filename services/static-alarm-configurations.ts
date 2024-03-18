@@ -246,10 +246,13 @@ export interface UserAlarmConfiguration {
   };
 }
 
+export type UserAlarmConfigurationState = 'IN_ALARM' | 'NO_DATA' | 'OK';
+
 export interface UserAlarmConfigurationOutput {
   id: string;
   type: string;
   category: AlarmCategory;
+  state: UserAlarmConfigurationState;
   name: string;
   created_at: string;
   configuration: {

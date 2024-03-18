@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
-import MetricAnalyzer from '../lib/metrics/metric-analyzer';
+import MetricCollector from '../lib/metrics/metric-collector';
 import MetricStore from '../lib/metrics/metric-store';
 import { updateAddonsSchema } from '../lib/zod/addons-schema';
 import { fetchAddonsByInstallationId, updateAddons } from '../services/addon-service';
@@ -28,7 +28,7 @@ const UpdateInstallationAddonsHandler = async (
     await updateAddons(req.agentToken['installation_id'], payload);
 
     try {
-      const observationMetricAnalyzer = new MetricAnalyzer(
+      const metricCollector = new MetricCollector(
         new MetricStore(
           process.env.TIMESTREAM_METRIC_REGION as string,
           process.env.TIMESTREAM_METRIC_DATABASE as string,
@@ -38,7 +38,7 @@ const UpdateInstallationAddonsHandler = async (
 
       const alarmConfigurations = await fetchUserAlarmConfigurations(req.user.userId);
 
-      observationMetricAnalyzer.analyzeAddonsAndStoreMetrics(
+      metricCollector.analyzeAddonsAndStoreMetrics(
         req.agentToken['installation_id'],
         payload,
         alarmConfigurations,

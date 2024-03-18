@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
-import MetricAnalyzer from '../lib/metrics/metric-analyzer';
+import MetricCollector from '../lib/metrics/metric-collector';
 import MetricStore from '../lib/metrics/metric-store';
 import { updateLogsSchema } from '../lib/zod/logs-schema';
 import { fetchUserAlarmConfigurations } from '../services/alarm-service';
@@ -28,7 +28,7 @@ const UpdateInstallationLogsHandler = async (
     await updateLogs(req.agentToken['installation_id'], payload.type, payload.content);
 
     try {
-      const metricAnalyzer = new MetricAnalyzer(
+      const metricAnalyzer = new MetricCollector(
         new MetricStore(
           process.env.TIMESTREAM_METRIC_REGION as string,
           process.env.TIMESTREAM_METRIC_DATABASE as string,

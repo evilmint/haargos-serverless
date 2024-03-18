@@ -7,7 +7,7 @@ import { User } from '../lib/base-request.js';
 import { chunkArray } from '../lib/chunk-array.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { UpgradeTierError } from '../lib/errors.js';
-import MetricAnalyzer from '../lib/metrics/metric-analyzer.js';
+import MetricCollector from '../lib/metrics/metric-collector.js';
 import MetricStore from '../lib/metrics/metric-store.js';
 import { Danger } from '../lib/models/danger.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
@@ -171,7 +171,7 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
     );
 
     try {
-      const observationMetricAnalyzer = new MetricAnalyzer(
+      const metricCollector = new MetricCollector(
         new MetricStore(
           process.env.TIMESTREAM_METRIC_REGION as string,
           process.env.TIMESTREAM_METRIC_DATABASE as string,
@@ -181,7 +181,7 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
 
       const alarmConfigurations = await fetchUserAlarmConfigurations(user.userId);
 
-      observationMetricAnalyzer.analyzeObservationAndStoreMetrics(
+      metricCollector.analyzeObservationAndStoreMetrics(
         requestData as z.infer<typeof observationSchema>,
         alarmConfigurations,
       );

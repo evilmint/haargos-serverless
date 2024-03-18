@@ -5,7 +5,7 @@ import _ from 'lodash';
 import { performance } from 'perf_hooks';
 import { dynamoDbClient } from '../../lib/dynamodb.js';
 import { isLocalDomain } from '../../lib/local-domain.js';
-import MetricAnalyzer, { InstallationPing } from '../../lib/metrics/metric-analyzer.js';
+import MetricCollector, { InstallationPing } from '../../lib/metrics/metric-collector.js';
 import MetricStore from '../../lib/metrics/metric-store.js';
 import { getAllInstallations } from '../../services/installation-service.js';
 
@@ -33,7 +33,7 @@ export async function performInstallationHealthCheck() {
       return i.urls.instance?.is_verified == true && !isLocalDomain(url);
     });
 
-  const metricAnalyzer = new MetricAnalyzer(
+  const metricCollector = new MetricCollector(
     new MetricStore(
       process.env.TIMESTREAM_METRIC_REGION as string,
       process.env.TIMESTREAM_METRIC_DATABASE as string,
@@ -75,7 +75,7 @@ export async function performInstallationHealthCheck() {
       });
 
     try {
-      await metricAnalyzer.analyzePingAndStoreMetrics(installationPings);
+      await metricCollector.analyzePingAndStoreMetrics(installationPings);
     } catch (error) {
       throw new Error('Failed with timestream' + error);
     }

@@ -10,6 +10,7 @@ const AlarmCategory = z.enum([
   'AUTOMATIONS',
   'SCRIPTS',
   'SCENES',
+  'PING',
 ]);
 
 const AlarmConfigurationSchema = z
