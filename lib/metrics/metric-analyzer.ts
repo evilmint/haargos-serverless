@@ -110,27 +110,38 @@ class MetricAnalyzer {
     if (ltGtThan && statFunction && values.length > 0) {
       let compared: number;
 
-      switch (statFunction.function) {
-        case 'avg':
-          compared = values.reduce((a, b) => a + (b.doubleValue ?? 0), 0) / values.length;
-          break;
-        case 'min':
-          compared = values.reduce((a, b) => Math.min(a, b.doubleValue ?? 0), 0);
-          break;
-        case 'max':
-          compared = values.reduce((a, b) => Math.max(a, b.doubleValue ?? 0), 0);
-          break;
-        case 'median':
-          compared = values.reduce((a, b) => a + (b.doubleValue ?? 0), 0) / values.length;
-          break;
-        case 'p90':
-          const ordinal = Math.ceil((config.configuration.datapointCount ?? 0) * 0.9);
-          const ordered = values.sort((a, b) => (a.doubleValue ?? 0) - (b.doubleValue ?? 0));
-          compared = ordered[ordinal].doubleValue ?? 0;
-          break;
-        case 'sum':
-          compared = values.reduce((a, b) => a + (b.doubleValue ?? 0), 0);
-          break;
+      if (values.length == 1) {
+        compared = values[0].doubleValue ?? 0;
+      } else {
+        switch (statFunction.function) {
+          case 'avg':
+            compared = values.reduce((a, b) => a + (b.doubleValue ?? 0), 0) / values.length;
+            break;
+          case 'min':
+            compared = values.reduce((a, b) => Math.min(a, b.doubleValue ?? 0), 0);
+            break;
+          case 'max':
+            compared = values.reduce((a, b) => Math.max(a, b.doubleValue ?? 0), 0);
+            break;
+          case 'median':
+            const sortedValues = values.map(v => v.doubleValue ?? 0).sort((a, b) => a - b);
+            const midIndex = Math.floor(sortedValues.length / 2);
+
+            if (sortedValues.length % 2 !== 0) {
+              compared = sortedValues[midIndex];
+            } else {
+              compared = (sortedValues[midIndex - 1] + sortedValues[midIndex]) / 2;
+            }
+            break;
+          case 'p90':
+            const ordinal = Math.ceil((config.configuration.datapointCount ?? 0) * 0.9);
+            const ordered = values.sort((a, b) => (a.doubleValue ?? 0) - (b.doubleValue ?? 0));
+            compared = ordered[ordinal].doubleValue ?? 0;
+            break;
+          case 'sum':
+            compared = values.reduce((a, b) => a + (b.doubleValue ?? 0), 0);
+            break;
+        }
       }
 
       if (ltGtThan.comparator == 'gt') {

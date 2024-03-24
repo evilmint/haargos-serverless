@@ -11,6 +11,7 @@ import {
   getAlarmConfigurations,
   updateUserAlarmConfiguration,
 } from '../services/alarm-service';
+import { fetchAlarmTriggers } from '../services/trigger-service';
 
 export async function GetAlarmConfigurationsHandler(
   req: TypedRequestBody<{ email: string; full_name: string }>,
@@ -23,10 +24,16 @@ export async function GetAlarmConfigurationsHandler(
   });
 }
 
-export async function GetUserAlarmConfigurationsHandler(
-  req: TypedRequestBody<{ email: string; full_name: string }>,
-  res: Response,
-) {
+export async function GetAlarmConfigurationHistoryHandler(req: BaseRequest, res: Response) {
+  const installationId = req.params.installationId;
+  const alarmChangeHistory = await fetchAlarmTriggers(installationId);
+
+  return res.status(StatusCodes.OK).json({
+    body: { configurations: alarmChangeHistory },
+  });
+}
+
+export async function GetUserAlarmConfigurationsHandler(req: BaseRequest, res: Response) {
   const userAlarmConfigurations = await fetchUserAlarmConfigurations(req.user.userId);
 
   return res.status(StatusCodes.OK).json({

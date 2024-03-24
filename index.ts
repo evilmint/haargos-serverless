@@ -16,6 +16,7 @@ import {
 import {
   CreateUserAlarmConfigurationHandler,
   DeleteUserAlarmConfigurationHandler,
+  GetAlarmConfigurationHistoryHandler,
   GetAlarmConfigurationsHandler,
   GetUserAlarmConfigurationsHandler,
   PutUserAlarmConfigurationHandler,
@@ -92,6 +93,7 @@ app.get(
   [jwtCheck, authorize],
   GetInstallationSupervisorHandler,
 );
+app.get('/installations/:installationId/alarms/history', [jwtCheck, authorize], GetAlarmConfigurationHistoryHandler);
 app.get('/alarms/configurations', [jwtCheck, authorize], GetAlarmConfigurationsHandler);
 app.get('/alarms', [jwtCheck, authorize], GetUserAlarmConfigurationsHandler);
 app.post('/alarms', [jwtCheck, authorize], CreateUserAlarmConfigurationHandler);

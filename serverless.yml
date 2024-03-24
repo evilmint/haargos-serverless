@@ -198,6 +198,7 @@ provider:
           Resource:
             - arn:aws:dynamodb:*:*:table/${self:custom.addonsTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.alarmConfigurationTableName}/index/*
+            - arn:aws:dynamodb:*:*:table/${self:custom.alarmTriggerTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.jobsTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.logsDataTableName}/index/*
             - arn:aws:dynamodb:*:*:table/${self:custom.observationDataTableName}/index/*

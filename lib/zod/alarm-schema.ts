@@ -18,16 +18,16 @@ const AlarmConfigurationSchema = z
     datapointCount: z.number().optional(),
     statFunction: z
       .object({
-        function: z.string(),
+        function: z.enum(['avg', 'min', 'max', 'median', 'p90', 'sum']),
       })
       .strict()
       .optional()
       .nullable(),
     ltGtThan: z
       .object({
-        comparator: z.string(),
+        comparator: z.enum(['lt', 'lte', 'gt', 'gte']),
         value: z.number(),
-        valueType: z.string(),
+        valueType: z.enum(['p', 'f']),
       })
       .strict()
       .optional()
@@ -37,7 +37,11 @@ const AlarmConfigurationSchema = z
       .optional()
       .nullable(),
     logTypes: z
-      .array(z.object({ logType: z.string() }).strict())
+      .array(
+        z
+          .object({ logType: z.enum(['core', 'host', 'audio', 'supervisor', 'multicast', 'dns']) })
+          .strict(),
+      )
       .nullable()
       .optional(),
     textCondition: z
