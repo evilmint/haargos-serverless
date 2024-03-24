@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
+import MetricAnalyzer from '../lib/metrics/metric-analyzer';
 import MetricCollector from '../lib/metrics/metric-collector';
 import MetricStore from '../lib/metrics/metric-store';
 import { updateAddonsSchema } from '../lib/zod/addons-schema';
@@ -42,7 +43,16 @@ const UpdateInstallationAddonsHandler = async (
         req.agentToken['installation_id'],
         payload,
         alarmConfigurations,
+        new Date(),
       );
+
+      const metricAnalyzer = new MetricAnalyzer(
+        alarmConfigurations,
+        process.env.TIMESTREAM_METRIC_REGION as string,
+        process.env.TIMESTREAM_METRIC_DATABASE as string,
+        process.env.TIMESTREAM_METRIC_TABLE as string,
+      );
+      await metricAnalyzer.analyzeAddonMetricsAndCreateTriggers(req.agentToken['installation_id']);
     } catch (error) {
       throw new Error('Failed with timestream' + error);
     }

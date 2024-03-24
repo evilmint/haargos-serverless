@@ -18,6 +18,7 @@ export interface InstallationPing {
   isHealthy: boolean;
   hasHomeAssistantContent: boolean;
   installationId: string;
+  startDate: Date | null;
 }
 
 export default class MetricCollector {
@@ -31,6 +32,7 @@ export default class MetricCollector {
     installationId: string,
     logsData: z.infer<typeof updateLogsSchema>,
     userAlarmConfigurations: UserAlarmConfiguration[],
+    date: Date,
   ): Promise<void> {
     const records: _Record[] = [];
 
@@ -38,9 +40,7 @@ export default class MetricCollector {
     const logUserAlarmConfigurations = userAlarmConfigurations.filter(config => {
       return (
         config.category === 'LOGS' &&
-        (config.configuration?.logTypes ?? [])
-          .map(l => l.logType)
-          .includes(logsData.type as any)
+        (config.configuration?.logTypes ?? []).map(l => l.logType).includes(logsData.type as any)
       );
     });
 
@@ -69,7 +69,7 @@ export default class MetricCollector {
             installationId,
             `logs-${logHash}`,
             userConfigurationHash,
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'VARCHAR',
             [{ Name: 'id', Value: configuration.id }],
           ),
@@ -92,7 +92,7 @@ export default class MetricCollector {
           ping.installationId,
           'ping',
           ping.responseTimeInMilliseconds.toFixed(0).toString(),
-          new Date().getTime().toString(),
+          (ping.startDate ?? new Date()).getTime().toString(),
           'VARCHAR',
           [
             { Name: 'healthy', Value: ping.isHealthy.toString() },
@@ -109,10 +109,11 @@ export default class MetricCollector {
     installationId: string,
     addonData: z.infer<typeof updateAddonsSchema>,
     userAlarmConfigurations: UserAlarmConfiguration[],
+    date: Date,
   ): Promise<void> {
     const records: _Record[] = [];
 
-    this.checkAddonMetrics(installationId, addonData, userAlarmConfigurations, records);
+    this.checkAddonMetrics(installationId, addonData, userAlarmConfigurations, records, date);
 
     await this.metricStore.storeMetrics(records);
   }
@@ -120,11 +121,12 @@ export default class MetricCollector {
   async analyzeObservationAndStoreMetrics(
     observationData: z.infer<typeof observationSchema>,
     userAlarmConfigurations: UserAlarmConfiguration[],
+    date: Date,
   ): Promise<void> {
     const records: _Record[] = [];
 
-    this.checkCoreMetrics(observationData, userAlarmConfigurations, records);
-    this.checkZigbeeMetrics(observationData, userAlarmConfigurations, records);
+    this.checkCoreMetrics(observationData, userAlarmConfigurations, records, date);
+    this.checkZigbeeMetrics(observationData, userAlarmConfigurations, records, date);
 
     await this.metricStore.storeMetrics(records);
   }
@@ -133,9 +135,18 @@ export default class MetricCollector {
     observationData: z.infer<typeof observationSchema>,
     userAlarmConfigurations: UserAlarmConfiguration[],
     records: _Record[],
+    date: Date,
   ): void {
     if (this.containsAlarmsOfType(userAlarmConfigurations, 'host_cpu_usage')) {
-      records.push(this.createCpuUsageRecord(observationData));
+      records.push(
+        createRecord(
+          observationData.installation_id,
+          'host_cpu_usage',
+          (observationData.environment.cpu?.load ?? 0).toString(),
+          date.getTime().toString(),
+          'DOUBLE',
+        ),
+      );
     }
 
     if (
@@ -150,7 +161,7 @@ export default class MetricCollector {
           observationData.installation_id,
           'host_memory_usage',
           ((memory.free / memory.total) * 100.0).toFixed(0).toString(),
-          new Date().getTime().toString(),
+          date.getTime().toString(),
           'DOUBLE',
         ),
       );
@@ -178,7 +189,7 @@ export default class MetricCollector {
             observationData.installation_id,
             'host_disk_usage',
             storage.use_percentage.substring(0, storage.use_percentage.length - 1),
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'DOUBLE',
             [{ Name: 'name', Value: storage.name }],
           ),
@@ -208,7 +219,7 @@ export default class MetricCollector {
             observationData.installation_id,
             'scene_last_trigger_older_than',
             scene.state,
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'VARCHAR',
             [{ Name: 'id', Value: scene.id }],
           ),
@@ -216,9 +227,7 @@ export default class MetricCollector {
       }
     }
 
-    if (
-      this.containsAlarmsOfType(userAlarmConfigurations, 'automation_last_trigger_older_than')
-    ) {
+    if (this.containsAlarmsOfType(userAlarmConfigurations, 'automation_last_trigger_older_than')) {
       const alarmAutomations = userAlarmConfigurations
         .filter(a => a.configuration.automations != null)
         .flatMap(a => a.configuration.automations!)
@@ -238,7 +247,7 @@ export default class MetricCollector {
             observationData.installation_id,
             'automation_last_trigger_older_than',
             automation.last_triggered,
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'VARCHAR',
             [{ Name: 'id', Value: automation.id }],
           ),
@@ -266,7 +275,7 @@ export default class MetricCollector {
             observationData.installation_id,
             'script_last_trigger_older_than',
             script.last_triggered,
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'VARCHAR',
             [{ Name: 'alias', Value: script.alias }],
           ),
@@ -280,6 +289,7 @@ export default class MetricCollector {
     addonData: z.infer<typeof updateAddonsSchema>,
     userAlarmConfigurations: UserAlarmConfiguration[],
     records: _Record[],
+    date: Date,
   ): void {
     if (this.containsAlarmsOfType(userAlarmConfigurations, 'addon_update_available')) {
       const alarmAddons = userAlarmConfigurations
@@ -297,7 +307,7 @@ export default class MetricCollector {
             installationId,
             'addon_update_available',
             addon.update_available.toString(),
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'BOOLEAN',
             [{ Name: 'addon_slug', Value: addon.slug }],
           ),
@@ -321,7 +331,7 @@ export default class MetricCollector {
             installationId,
             'addon_stopped',
             addon.state,
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'VARCHAR',
             [{ Name: 'addon_slug', Value: addon.slug }],
           ),
@@ -347,7 +357,7 @@ export default class MetricCollector {
             installationId,
             'addon_cpu_usage',
             addon.stats.cpu_percent.toString(),
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'DOUBLE',
             [{ Name: 'addon_slug', Value: addon.slug }],
           ),
@@ -373,7 +383,7 @@ export default class MetricCollector {
             installationId,
             'addon_memory_usage',
             addon.stats.memory_percent.toString(),
-            new Date().getTime().toString(),
+            date.getTime().toString(),
             'DOUBLE',
             [{ Name: 'addon_slug', Value: addon.slug }],
           ),
@@ -386,6 +396,7 @@ export default class MetricCollector {
     observationData: z.infer<typeof observationSchema>,
     userAlarmConfigurations: UserAlarmConfiguration[],
     records: _Record[],
+    date: Date,
   ): void {
     if (this.containsAlarmsOfCategory(userAlarmConfigurations, 'ZIGBEE')) {
       const zigbeeDevicesInAlarms = userAlarmConfigurations
@@ -394,8 +405,7 @@ export default class MetricCollector {
         .flatMap(a => a.ieee);
 
       const zigbeeObservationDevices =
-        observationData.zigbee?.devices.filter(d => zigbeeDevicesInAlarms.includes(d.ieee)) ??
-        [];
+        observationData.zigbee?.devices.filter(d => zigbeeDevicesInAlarms.includes(d.ieee)) ?? [];
 
       for (const device of zigbeeObservationDevices) {
         records.push(
@@ -405,6 +415,7 @@ export default class MetricCollector {
             device.ieee,
             device.lqi.toString(),
             'DOUBLE',
+            date,
           ),
         );
 
@@ -416,6 +427,7 @@ export default class MetricCollector {
               device.ieee,
               device.battery_level,
               'DOUBLE',
+              date,
             ),
           );
         }
@@ -427,20 +439,11 @@ export default class MetricCollector {
             device.ieee,
             device.last_updated,
             'VARCHAR',
+            date,
           ),
         );
       }
     }
-  }
-
-  private createCpuUsageRecord(observationData: z.infer<typeof observationSchema>): any {
-    return createRecord(
-      observationData.installation_id,
-      'cpu_usage',
-      (observationData.environment.cpu?.load ?? 0).toString(),
-      new Date().getTime().toString(),
-      'DOUBLE',
-    );
   }
 
   private createZigbeeRecord(
@@ -449,15 +452,11 @@ export default class MetricCollector {
     ieee: string,
     metric: any,
     recordType: MeasureValueType,
+    date: Date,
   ): _Record {
-    return createRecord(
-      installationId,
-      metricName,
-      metric,
-      new Date().getTime().toString(),
-      recordType,
-      [{ Name: 'ieee', Value: ieee }],
-    );
+    return createRecord(installationId, metricName, metric, date.getTime().toString(), recordType, [
+      { Name: 'ieee', Value: ieee },
+    ]);
   }
 
   private containsAlarmsOfType(

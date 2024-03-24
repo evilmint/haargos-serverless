@@ -7,6 +7,7 @@ import { User } from '../lib/base-request.js';
 import { chunkArray } from '../lib/chunk-array.js';
 import { dynamoDbClient } from '../lib/dynamodb.js';
 import { UpgradeTierError } from '../lib/errors.js';
+import MetricAnalyzer from '../lib/metrics/metric-analyzer.js';
 import MetricCollector from '../lib/metrics/metric-collector.js';
 import MetricStore from '../lib/metrics/metric-store.js';
 import { Danger } from '../lib/models/danger.js';
@@ -136,18 +137,16 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
 
     // Check if we need to delete any old observations
     if (sortedObservations.length > keepObservationCount) {
-      const itemsToDelete = sortedObservations
-        .slice(keepObservationCount - 1)
-        .map(observation => {
-          return {
-            DeleteRequest: {
-              Key: marshall({
-                userId: observation.userId,
-                timestamp: observation.timestamp,
-              }),
-            },
-          };
-        });
+      const itemsToDelete = sortedObservations.slice(keepObservationCount - 1).map(observation => {
+        return {
+          DeleteRequest: {
+            Key: marshall({
+              userId: observation.userId,
+              timestamp: observation.timestamp,
+            }),
+          },
+        };
+      });
 
       const maxBatchItemSize = 25; // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
       const chunksOfItemsToDelete = chunkArray(itemsToDelete, maxBatchItemSize);
@@ -184,7 +183,16 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
       metricCollector.analyzeObservationAndStoreMetrics(
         requestData as z.infer<typeof observationSchema>,
         alarmConfigurations,
+        new Date(),
       );
+
+      const metricAnalyzer = new MetricAnalyzer(
+        alarmConfigurations,
+        process.env.TIMESTREAM_METRIC_REGION as string,
+        process.env.TIMESTREAM_METRIC_DATABASE as string,
+        process.env.TIMESTREAM_METRIC_TABLE as string,
+      );
+      await metricAnalyzer.analyzeObservationMetricsAndCreateTriggers(requestData.installation_id);
     } catch (error) {
       throw new Error('Failed with timestream' + error);
     }

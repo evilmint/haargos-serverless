@@ -23,9 +23,7 @@ type Addon = {
   logo: boolean;
 };
 
-export async function fetchAddonsByInstallationId(
-  installationId: string,
-): Promise<Addon[] | null> {
+export async function fetchAddonsByInstallationId(installationId: string): Promise<Addon[] | null> {
   const addonParams = {
     TableName: process.env.ADDON_TABLE,
     KeyConditionExpression: '#installation_id = :installationId',

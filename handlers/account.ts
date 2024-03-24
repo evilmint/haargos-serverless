@@ -68,11 +68,7 @@ export const CreateAccountHandler = async (
     if (!req.auth || !req.auth?.payload.sub) {
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json();
     }
-    const user = await createAccount(
-      req.auth.token,
-      req.auth.payload.sub,
-      req.body.userFullName,
-    );
+    const user = await createAccount(req.auth.token, req.auth.payload.sub, req.body.userFullName);
 
     return res.status(StatusCodes.CREATED).json({ body: user });
   } catch (error) {

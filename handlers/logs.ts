@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { BaseRequest } from '../lib/base-request';
 import { maskError } from '../lib/mask-error';
+import MetricAnalyzer from '../lib/metrics/metric-analyzer';
 import MetricCollector from '../lib/metrics/metric-collector';
 import MetricStore from '../lib/metrics/metric-store';
 import { updateLogsSchema } from '../lib/zod/logs-schema';
@@ -28,7 +29,7 @@ const UpdateInstallationLogsHandler = async (
     await updateLogs(req.agentToken['installation_id'], payload.type, payload.content);
 
     try {
-      const metricAnalyzer = new MetricCollector(
+      const metricCollector = new MetricCollector(
         new MetricStore(
           process.env.TIMESTREAM_METRIC_REGION as string,
           process.env.TIMESTREAM_METRIC_DATABASE as string,
@@ -38,11 +39,20 @@ const UpdateInstallationLogsHandler = async (
 
       const alarmConfigurations = await fetchUserAlarmConfigurations(req.user.userId);
 
-      await metricAnalyzer.analyzeLogsAndStoreMetrics(
+      await metricCollector.analyzeLogsAndStoreMetrics(
         req.agentToken['installation_id'],
         payload,
         alarmConfigurations,
+        new Date(),
       );
+
+      const metricAnalyzer = new MetricAnalyzer(
+        alarmConfigurations,
+        process.env.TIMESTREAM_METRIC_REGION as string,
+        process.env.TIMESTREAM_METRIC_DATABASE as string,
+        process.env.TIMESTREAM_METRIC_TABLE as string,
+      );
+      await metricAnalyzer.analyzeLogMetricsAndCreateTriggers(req.agentToken['installation_id']);
     } catch (error) {
       throw new Error('Failed with timestream' + error);
     }
@@ -56,11 +66,7 @@ const UpdateInstallationLogsHandler = async (
   }
 };
 
-const GetInstallationLogsHandler = async (
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) => {
+const GetInstallationLogsHandler = async (req: BaseRequest, res: Response, _next: NextFunction) => {
   const logType = req.params.type;
   const log = await fetchLogByInstallationIdAndType(req.params.installationId, logType);
 

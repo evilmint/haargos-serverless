@@ -3,10 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { TypedRequestBody } from '../lib/typed-request-body';
 import { Contact } from '../services/contact-service';
 
-export const GetAgentConfigHandler = async (
-  _req: TypedRequestBody<Contact>,
-  res: Response,
-) => {
+export const GetAgentConfigHandler = async (_req: TypedRequestBody<Contact>, res: Response) => {
   const config = {};
   config['cycle_interval'] = 15 * 60;
 

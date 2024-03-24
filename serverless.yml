@@ -14,6 +14,7 @@ custom:
     apiType: http
   addonsTableName: 'addons-table-${sls:stage}'
   alarmConfigurationTableName: 'alarm-configuration-table-${sls:stage}'
+  alarmTriggerTableName: 'alarm-triggers-table-${sls:stage}'
   configurationTableName: 'configuration-table-${sls:stage}'
   contactTableName: 'contact-table-${sls:stage}'
   dnsVerificationTableName: 'dns-verification-table-${sls:stage}'
@@ -51,6 +52,7 @@ provider:
           Action:
             - timestream:WriteRecords
             - timestream:DescribeEndpoints
+            - timestream:Select
           Resource: '*'
 
         - Effect: Allow
@@ -69,6 +71,16 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [AlarmConfigurationTable, Arn]
+
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+          Resource:
+            - Fn::GetAtt: [AlarmTriggerTable, Arn]
 
         - Effect: Allow
           Action:
@@ -198,6 +210,7 @@ provider:
     # DynamoDB Tables
     ADDON_TABLE: ${self:custom.addonsTableName}
     ALARM_CONFIGURATION_TABLE: ${self:custom.alarmConfigurationTableName}
+    ALARM_TRIGGER_TABLE: ${self:custom.alarmTriggerTableName}
     CONFIGURATION_TABLE: ${self:custom.configurationTableName}
     CONTACT_TABLE: ${self:custom.contactTableName}
     DNS_VERIFICATION_TABLE: ${self:custom.dnsVerificationTableName}
@@ -313,6 +326,37 @@ resources:
           - IndexName: alarmId-index
             KeySchema:
               - AttributeName: id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    AlarmTriggerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.alarmTriggerTableName}
+        AttributeDefinitions:
+          - AttributeName: installation_id
+            AttributeType: S
+          - AttributeName: triggered_at
+            AttributeType: S
+          - AttributeName: processed
+            AttributeType: N
+        KeySchema:
+          - AttributeName: installation_id
+            KeyType: HASH
+          - AttributeName: triggered_at
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: installationIdIndex
+            KeySchema:
+              - AttributeName: installation_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: processedIndex
+            KeySchema:
+              - AttributeName: processed
                 KeyType: HASH
             Projection:
               ProjectionType: ALL

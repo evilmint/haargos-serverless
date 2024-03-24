@@ -100,10 +100,7 @@ async function authorize(req: BaseRequest, res: Response, next: NextFunction) {
       }
     } else {
       return res.status(StatusCodes.FORBIDDEN).json({
-        error: maskError(
-          'Invalid authentication token - no auth & token set.',
-          req.IN_DEV_STAGE,
-        ),
+        error: maskError('Invalid authentication token - no auth & token set.', req.IN_DEV_STAGE),
       });
     }
 

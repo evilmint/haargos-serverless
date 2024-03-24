@@ -5,9 +5,7 @@ import { osSchema } from '../lib/zod/os-schema';
 
 type OsInfo = z.infer<typeof osSchema>;
 
-export async function fetchOsInfoByInstallationId(
-  installationId: string,
-): Promise<OsInfo | null> {
+export async function fetchOsInfoByInstallationId(installationId: string): Promise<OsInfo | null> {
   const params = {
     TableName: process.env.OS_TABLE,
     KeyConditionExpression: '#installation_id = :installationId',

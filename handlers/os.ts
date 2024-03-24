@@ -33,11 +33,7 @@ const UpdateInstallationOsHandler = async (
   }
 };
 
-const GetInstallationOsHandler = async (
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) => {
+const GetInstallationOsHandler = async (req: BaseRequest, res: Response, _next: NextFunction) => {
   const osInfo = await fetchOsInfoByInstallationId(req.params.installationId);
 
   return res.status(StatusCodes.OK).json({

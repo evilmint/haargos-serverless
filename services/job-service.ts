@@ -39,9 +39,7 @@ export async function fetchPendingJobsByInstallationId(
   return response.Items ? (response.Items as Job[]) : null;
 }
 
-export async function fetchJobsByInstallationId(
-  installationId: string,
-): Promise<Job[] | null> {
+export async function fetchJobsByInstallationId(installationId: string): Promise<Job[] | null> {
   const params = {
     TableName: process.env.JOB_TABLE,
     KeyConditionExpression: '#installation_id = :installation_id',
@@ -65,10 +63,7 @@ export async function fetchJobsByInstallationId(
   return response.Items ? (response.Items as Job[]) : null;
 }
 
-export async function fetchJobById(
-  installationId: string,
-  jobId: string,
-): Promise<Job | null> {
+export async function fetchJobById(installationId: string, jobId: string): Promise<Job | null> {
   const params = {
     TableName: process.env.JOB_TABLE,
     KeyConditionExpression: '#installation_id = :installationId AND #id = :jobId',

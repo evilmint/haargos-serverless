@@ -5,6 +5,7 @@ import _ from 'lodash';
 import { performance } from 'perf_hooks';
 import { dynamoDbClient } from '../../lib/dynamodb.js';
 import { isLocalDomain } from '../../lib/local-domain.js';
+import MetricAnalyzer from '../../lib/metrics/metric-analyzer.js';
 import MetricCollector, { InstallationPing } from '../../lib/metrics/metric-collector.js';
 import MetricStore from '../../lib/metrics/metric-store.js';
 import { getAllInstallations } from '../../services/installation-service.js';
@@ -65,10 +66,11 @@ export async function performInstallationHealthCheck() {
 
     const installationPings: InstallationPing[] = results
       .filter(i => i.item.id)
-      .map(({ item: installation, hasHomeAssistantContent, healthy, time }) => {
+      .map(({ item: installation, hasHomeAssistantContent, healthy, startDate, time }) => {
         return {
           hasHomeAssistantContent: hasHomeAssistantContent,
           isHealthy: healthy.value,
+          startDate: startDate,
           responseTimeInMilliseconds: time,
           installationId: installation.id!,
         };
@@ -76,6 +78,15 @@ export async function performInstallationHealthCheck() {
 
     try {
       await metricCollector.analyzePingAndStoreMetrics(installationPings);
+
+      // TODO: Fetch alarm configurations for installation ids in installation pings and pass below
+      const metricAnalyzer = new MetricAnalyzer(
+        [],
+        process.env.TIMESTREAM_METRIC_REGION as string,
+        process.env.TIMESTREAM_METRIC_DATABASE as string,
+        process.env.TIMESTREAM_METRIC_TABLE as string,
+      );
+      await metricAnalyzer.analyzePingMetricsAndCreateTriggers(installationPings);
     } catch (error) {
       throw new Error('Failed with timestream' + error);
     }
@@ -86,19 +97,19 @@ type CheckInstanceHealthOutput = {
   item: InstallationItem;
   healthy: { value: boolean; last_updated: string };
   hasHomeAssistantContent: boolean;
+  startDate: Date | null;
   time: number;
   error?: any;
 };
 
-async function queryInstanceHealth(
-  item: InstallationItem,
-): Promise<CheckInstanceHealthOutput> {
+async function queryInstanceHealth(item: InstallationItem): Promise<CheckInstanceHealthOutput> {
   const instanceUrl = item.urls.instance?.url ?? '';
 
   if (instanceUrl === '') {
     return {
       item,
       hasHomeAssistantContent: false,
+      startDate: null,
       time: 0,
       healthy: { value: false, last_updated: new Date().toISOString() },
       error: null,
@@ -106,6 +117,7 @@ async function queryInstanceHealth(
   }
 
   let time = performance.now();
+  let startDate = new Date();
   let isHealthy = false;
   let hasHomeAssistantContent: boolean = false;
 
@@ -121,6 +133,7 @@ async function queryInstanceHealth(
 
   return {
     item,
+    startDate: startDate,
     time: performance.now() - time,
     hasHomeAssistantContent: hasHomeAssistantContent,
     healthy: { value: isHealthy, last_updated: new Date().toISOString() },

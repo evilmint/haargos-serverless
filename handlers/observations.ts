@@ -33,9 +33,7 @@ async function GetObservationsHandler(req: BaseRequest, res: Response, _next: Ne
       body: response,
     });
   } catch (error) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: maskError(error, true) });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: maskError(error, true) });
   }
 }
 
@@ -52,10 +50,7 @@ async function PostObservationsHandler(req: BaseRequest, res: Response, _next: N
 
     let requestData = req.body;
 
-    const isInstallationValid = await checkInstallation(
-      userId,
-      req.agentToken['installation_id'],
-    );
+    const isInstallationValid = await checkInstallation(userId, req.agentToken['installation_id']);
 
     if (!isInstallationValid) {
       return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid installation.' });

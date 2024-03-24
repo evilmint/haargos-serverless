@@ -35,10 +35,7 @@ import {
 } from './handlers/notifications';
 
 import { StatusCodes } from 'http-status-codes';
-import {
-  GetInstallationAddonsHandler,
-  UpdateInstallationAddonsHandler,
-} from './handlers/addons';
+import { GetInstallationAddonsHandler, UpdateInstallationAddonsHandler } from './handlers/addons';
 import {
   GetInstallationPendingJobsHandler,
   ListJobsHandler,

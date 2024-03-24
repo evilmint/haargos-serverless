@@ -74,11 +74,7 @@ async function GetInstallationsHandler(req: BaseRequest, res: Response, _next: N
   }
 }
 
-const CreateInstallationHandler = async (
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) => {
+const CreateInstallationHandler = async (req: BaseRequest, res: Response, _next: NextFunction) => {
   type ValidatePayload = z.infer<typeof createInstallationFormSchema>;
 
   try {
@@ -120,11 +116,7 @@ const CreateInstallationHandler = async (
   }
 };
 
-const DeleteInstallationHandler = async (
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) => {
+const DeleteInstallationHandler = async (req: BaseRequest, res: Response, _next: NextFunction) => {
   try {
     await deleteInstallation(req.user.userId, req.params.installationId);
     return res.status(StatusCodes.OK).json({ success: true });
@@ -136,11 +128,7 @@ const DeleteInstallationHandler = async (
   }
 };
 
-const UpdateInstallationHandler = async (
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) => {
+const UpdateInstallationHandler = async (req: BaseRequest, res: Response, _next: NextFunction) => {
   type ValidatePayload = z.infer<typeof updateInstallationFormSchema>;
 
   try {

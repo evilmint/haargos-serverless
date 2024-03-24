@@ -34,10 +34,7 @@ export async function fetchNotificationsByInstallationId(
   return notificationResponse.Items as Notification[];
 }
 
-export async function updateNotifications(
-  installationId: string,
-  notifications: Notification[],
-) {
+export async function updateNotifications(installationId: string, notifications: Notification[]) {
   await deleteLogsByInstallationId(installationId);
 
   if (notifications.length == 0) {

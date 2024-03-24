@@ -75,11 +75,7 @@ export const handler = async (_event: any) => {
         },
         ExpressionAttributeValues: {
           ':isVerified': isVerified,
-          ':status': isVerified
-            ? 'SUCCESS'
-            : attempts >= attemptsAllowed
-              ? 'FAILED'
-              : 'PENDING',
+          ':status': isVerified ? 'SUCCESS' : attempts >= attemptsAllowed ? 'FAILED' : 'PENDING',
         },
       };
 

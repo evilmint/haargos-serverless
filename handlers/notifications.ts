@@ -41,8 +41,7 @@ const GetInstallationNotificationsHandler = async (
   res: Response,
   _next: NextFunction,
 ) => {
-  const notifications =
-    (await fetchNotificationsByInstallationId(req.params.installationId)) ?? [];
+  const notifications = (await fetchNotificationsByInstallationId(req.params.installationId)) ?? [];
 
   return res.status(StatusCodes.OK).json({
     body: { notifications: notifications },

@@ -15,7 +15,8 @@ export type AlarmConfigurationType =
   | 'zigbee_device_lqi'
   | 'zigbee_last_updated_older_than'
   | 'zigbee_device_battery_percentage'
-  | 'logs_contain_string';
+  | 'logs_contain_string'
+  | 'ping';
 
 export const staticConfigurations: AlarmConfiguration[] = [
   {
@@ -222,6 +223,8 @@ export type AlarmConfigurationTextCondition = {
   caseSensitive: boolean;
 };
 
+export type AlarmConfigurationStatFunction = 'avg' | 'min' | 'max' | 'median' | 'sum' | 'p90';
+
 export interface UserAlarmConfiguration {
   id: string;
   type: AlarmConfigurationType;
@@ -229,6 +232,7 @@ export interface UserAlarmConfiguration {
   user_id: string;
   created_at: string;
   name: string;
+  state: UserAlarmConfigurationState;
   configuration: {
     datapointCount?: number;
     addons?: { slug: string }[];
@@ -237,7 +241,7 @@ export interface UserAlarmConfiguration {
     logTypes?: { logType: string }[];
     textCondition?: AlarmConfigurationTextCondition;
     storages?: { name: string }[];
-    statFunction?: { function: string };
+    statFunction?: { function: AlarmConfigurationStatFunction };
     ltGtThan?: { comparator: string; value: number; valueType: string };
     automations?: { id: string; name: string }[];
     zigbee?: { ieee: string }[];

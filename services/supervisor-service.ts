@@ -28,10 +28,7 @@ export async function fetchSupervisorInfoByInstallationId(
   return response.Items[0] as SupervisorInfo;
 }
 
-export async function updateSupervisorInfo(
-  installationId: string,
-  supervisorInfo: SupervisorInfo,
-) {
+export async function updateSupervisorInfo(installationId: string, supervisorInfo: SupervisorInfo) {
   const putParams = {
     TableName: process.env.SUPERVISOR_TABLE,
     Item: {

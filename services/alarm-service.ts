@@ -15,6 +15,7 @@ import {
   TimeComponent,
   UserAlarmConfiguration,
   UserAlarmConfigurationOutput,
+  UserAlarmConfigurationState,
   staticConfigurations,
 } from './static-alarm-configurations';
 
@@ -42,10 +43,13 @@ export async function fetchUserAlarmConfigurations(
   let alarmNameByType = staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce((acc, alarmType) => {
-      acc[alarmType.type] = alarmType.name;
-      return acc;
-    }, {} as Record<string, string>);
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
   let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
 
@@ -67,7 +71,7 @@ export async function createAlarmConfiguration(
     id: id,
     created_at: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
     user_id: userId,
-    state: 'OK',
+    state: 'NO_DATA',
     deleted: false,
   };
 
@@ -112,10 +116,7 @@ async function fetchUserAlarmConfiguration(
   return items.length > 0 ? items[0] : null;
 }
 
-export async function deleteUserAlarmConfiguration(
-  userId: string,
-  alarmId: string,
-): Promise<void> {
+export async function deleteUserAlarmConfiguration(userId: string, alarmId: string): Promise<void> {
   const alarmConfiguration = await fetchUserAlarmConfiguration(alarmId);
 
   if (alarmConfiguration == null) {
@@ -138,6 +139,33 @@ export async function deleteUserAlarmConfiguration(
 export interface OlderThanOption {
   timeComponent: TimeComponent;
   componentValue: number;
+}
+
+export async function updateUserAlarmConfigurationState(
+  userId: string,
+  created_at: string,
+  state: UserAlarmConfigurationState,
+): Promise<void> {
+  const userPrimaryKey = {
+    user_id: userId,
+    created_at: created_at,
+  };
+
+  const updateParams: UpdateCommandInput = {
+    TableName: process.env.ALARM_CONFIGURATION_TABLE,
+    Key: userPrimaryKey,
+    UpdateExpression: 'SET #state = :state',
+    ExpressionAttributeNames: {
+      '#state': 'state',
+    },
+    ExpressionAttributeValues: {
+      ':state': state,
+    },
+  };
+
+  console.log(updateParams);
+
+  await dynamoDbClient.send(new UpdateCommand(updateParams));
 }
 
 export async function updateUserAlarmConfiguration(
@@ -185,15 +213,13 @@ export async function updateUserAlarmConfiguration(
   if (alarmConfiguration.configuration.textCondition) {
     expressionAttributeNames[`#textCondition`] = 'textCondition';
     expressionAttributeNames[`#matcher`] = 'matcher';
-    expressionAttributeValues[`:matcher`] =
-      alarmConfiguration.configuration.textCondition.matcher;
+    expressionAttributeValues[`:matcher`] = alarmConfiguration.configuration.textCondition.matcher;
     updateExpression += ', #configuration.#textCondition.#matcher = :matcher';
 
     expressionAttributeNames[`#textConditionText`] = 'text';
     expressionAttributeValues[`:textConditionText`] =
       alarmConfiguration.configuration.textCondition.text;
-    updateExpression +=
-      ', #configuration.#textCondition.#textConditionText = :textConditionText';
+    updateExpression += ', #configuration.#textCondition.#textConditionText = :textConditionText';
 
     expressionAttributeNames[`#textConditionCS`] = 'caseSensitive';
     expressionAttributeValues[`:textConditionCS`] =
@@ -212,8 +238,7 @@ export async function updateUserAlarmConfiguration(
     expressionAttributeNames[`#ltGtThanComparator`] = 'comparator';
     expressionAttributeNames[`#ltGtThanValue`] = 'value';
     expressionAttributeNames[`#ltGtThanValueType`] = 'valueType';
-    expressionAttributeValues[`:ltGtThanValue`] =
-      alarmConfiguration.configuration.ltGtThan.value;
+    expressionAttributeValues[`:ltGtThanValue`] = alarmConfiguration.configuration.ltGtThan.value;
     expressionAttributeValues[`:ltGtThanValueType`] =
       alarmConfiguration.configuration.ltGtThan.valueType;
     expressionAttributeValues[`:ltGtThanComparator`] =
@@ -224,14 +249,7 @@ export async function updateUserAlarmConfiguration(
   }
 
   // Conditionally add other parts based on their existence
-  const attributesToUpdate = [
-    'addons',
-    'zigbee',
-    'scripts',
-    'scenes',
-    'automations',
-    'olderThan',
-  ];
+  const attributesToUpdate = ['addons', 'zigbee', 'scripts', 'scenes', 'automations', 'olderThan'];
   attributesToUpdate.forEach(attr => {
     if (
       alarmConfiguration.configuration[attr] !== undefined &&
@@ -265,8 +283,11 @@ function alarmNameByType(): Record<string, string> {
   return staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce((acc, alarmType) => {
-      acc[alarmType.type] = alarmType.name;
-      return acc;
-    }, {} as Record<string, string>);
+    .reduce(
+      (acc, alarmType) => {
+        acc[alarmType.type] = alarmType.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 }

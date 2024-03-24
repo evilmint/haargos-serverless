@@ -27,17 +27,11 @@ const GetInstallationPendingJobsHandler = async (
     return res.status(StatusCodes.OK).json({ body: pendingJobs });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: 'Internal Server Error' });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
   }
 };
 
-const UpdateJobStatusHandler = async (
-  req: BaseRequest,
-  res: Response,
-  _next: NextFunction,
-) => {
+const UpdateJobStatusHandler = async (req: BaseRequest, res: Response, _next: NextFunction) => {
   try {
     const installationId = req.agentToken?.installation_id;
 
@@ -55,9 +49,7 @@ const UpdateJobStatusHandler = async (
     return res.status(StatusCodes.NO_CONTENT).json();
   } catch (error) {
     console.error('An error occurred:', error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: 'Internal Server Error' });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -77,9 +69,7 @@ const SubmitJobHandler = async (req: BaseRequest, res: Response, _next: NextFunc
     return res.status(StatusCodes.OK).json({ message: 'Job submitted successfully.' });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: 'Internal Server Error' });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -96,9 +86,7 @@ const ListJobsHandler = async (req: BaseRequest, res: Response, _next: NextFunct
     return res.status(StatusCodes.OK).json({ body: { jobs: jobs } });
   } catch (error) {
     console.error('An error occurred:', error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: 'Internal Server Error' });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
   }
 };
 

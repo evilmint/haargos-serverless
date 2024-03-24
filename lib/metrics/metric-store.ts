@@ -29,7 +29,6 @@ export default class MetricStore {
 
     try {
       await this.timestreamWriteClient.send(new WriteRecordsCommand(writeRecordsParams));
-      console.log('Metrics written to Timestream successfully.');
     } catch (error) {
       console.error('Failed to write metrics to Timestream:', error);
       throw error;

@@ -4,6 +4,7 @@
   "description": "",
   "dependencies": {
     "@auth0/auth0-react": "^2.2.0",
+    "@aws-sdk/client-timestream-query": "^3.540.0",
     "@aws-sdk/client-timestream-write": "^3.514.0",
     "@aws-sdk/lib-dynamodb": "^3.409.0",
     "@smithy/smithy-client": "^2.1.3",
