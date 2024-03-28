@@ -29,7 +29,7 @@ export async function GetAlarmConfigurationHistoryHandler(req: BaseRequest, res:
   const alarmChangeHistory = await fetchAlarmTriggers(installationId);
 
   return res.status(StatusCodes.OK).json({
-    body: { configurations: alarmChangeHistory },
+    body: { history: alarmChangeHistory },
   });
 }
 

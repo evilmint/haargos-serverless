@@ -19,6 +19,7 @@ export interface InstallationPing {
   hasHomeAssistantContent: boolean;
   installationId: string;
   startDate: Date | null;
+  userId: string | undefined;
 }
 
 export default class MetricCollector {
@@ -90,10 +91,10 @@ export default class MetricCollector {
       records.push(
         createRecord(
           ping.installationId,
-          'ping',
+          'ping_fixed',
           ping.responseTimeInMilliseconds.toFixed(0).toString(),
           (ping.startDate ?? new Date()).getTime().toString(),
-          'VARCHAR',
+          'DOUBLE',
           [
             { Name: 'healthy', Value: ping.isHealthy.toString() },
             { Name: 'haContent', Value: ping.hasHomeAssistantContent.toString() },

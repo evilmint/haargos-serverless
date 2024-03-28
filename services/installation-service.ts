@@ -3,6 +3,7 @@ import {
   DeleteCommandInput,
   QueryCommand,
   ScanCommand,
+  ScanCommandInput,
   UpdateCommand,
   UpdateCommandInput,
 } from '@aws-sdk/lib-dynamodb';
@@ -57,12 +58,11 @@ const getLatestRelease = async () => {
 };
 
 async function getAllInstallations() {
-  const scanParams = {
+  const scanParams: ScanCommandInput = {
     TableName: process.env.INSTALLATION_TABLE,
   };
 
   const scanResult = await dynamoDbClient.send(new ScanCommand(scanParams));
-
   return scanResult;
 }
 
@@ -397,5 +397,6 @@ export {
   getInstallations,
   getLatestRelease,
   updateInstallation,
-  updateInstallationAgentData,
+  updateInstallationAgentData
 };
+

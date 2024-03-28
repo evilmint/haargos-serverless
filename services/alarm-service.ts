@@ -43,18 +43,15 @@ export async function fetchUserAlarmConfigurations(
   let alarmNameByType = staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 
   let items = response.Items ? (response.Items as UserAlarmConfiguration[]) : [];
 
   items.forEach(i => {
-    i.name = alarmNameByType[i.type];
+    i.description = alarmNameByType[i.type];
   });
 
   return items;
@@ -83,7 +80,7 @@ export async function createAlarmConfiguration(
   await dynamoDbClient.send(new PutCommand(putParams));
 
   let alarmNameByTypeArray = alarmNameByType();
-  item.name = alarmNameByTypeArray[item.type];
+  item.description = alarmNameByTypeArray[item.type];
 
   return item as UserAlarmConfigurationOutput;
 }
@@ -110,7 +107,7 @@ async function fetchUserAlarmConfiguration(
 
   let alarmNameByTypeArray = alarmNameByType();
   items.forEach(i => {
-    i.name = alarmNameByTypeArray[i.type];
+    i.description = alarmNameByTypeArray[i.type];
   });
 
   return items.length > 0 ? items[0] : null;
@@ -163,8 +160,6 @@ export async function updateUserAlarmConfigurationState(
     },
   };
 
-  console.log(updateParams);
-
   await dynamoDbClient.send(new UpdateCommand(updateParams));
 }
 
@@ -185,12 +180,14 @@ export async function updateUserAlarmConfiguration(
   };
 
   let updateExpression =
-    'SET #configuration.#datapointCount = :datapointCount, #configuration.#notificationMethod = :notificationMethod';
+    'SET #name = :name, #configuration.#datapointCount = :datapointCount, #configuration.#notificationMethod = :notificationMethod';
   let expressionAttributeValues = {
+    ':name': alarmConfiguration.name,
     ':datapointCount': alarmConfiguration.configuration.datapointCount ?? 0,
     ':notificationMethod': alarmConfiguration.configuration.notificationMethod,
   };
   let expressionAttributeNames = {
+    '#name': 'name',
     '#configuration': 'configuration',
     '#datapointCount': 'datapointCount',
     '#notificationMethod': 'notificationMethod',
@@ -274,7 +271,7 @@ export async function updateUserAlarmConfiguration(
   const item = result.Attributes as UserAlarmConfigurationOutput;
 
   const alarmNameByTypeArray = alarmNameByType();
-  item.name = alarmNameByTypeArray[item.type];
+  item.description = alarmNameByTypeArray[item.type];
 
   return item;
 }
@@ -283,11 +280,8 @@ function alarmNameByType(): Record<string, string> {
   return staticConfigurations
     .map(a => a.alarmTypes)
     .flat()
-    .reduce(
-      (acc, alarmType) => {
-        acc[alarmType.type] = alarmType.name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    .reduce((acc, alarmType) => {
+      acc[alarmType.type] = alarmType.name;
+      return acc;
+    }, {} as Record<string, string>);
 }

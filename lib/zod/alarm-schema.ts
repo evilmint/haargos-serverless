@@ -111,6 +111,7 @@ const AlarmConfigurationSchema = z
 
 export const createAlarmSchema = z
   .object({
+    name: z.string().min(1),
     type: z.string(),
     category: AlarmCategory,
     configuration: AlarmConfigurationSchema.nullable(),

@@ -1,5 +1,7 @@
-import { QueryCommand, Row, TimestreamQueryClient } from '@aws-sdk/client-timestream-query';
-import { _Record } from '@aws-sdk/client-timestream-write';
+import { Row, TimestreamQueryClient } from '@aws-sdk/client-timestream-query';
+import { max, mean, median, min, sum } from 'mathjs';
+import percentile from 'percentile';
+import * as R from 'ramda';
 import { updateUserAlarmConfigurationState } from '../../services/alarm-service';
 import {
   UserAlarmConfiguration,
@@ -7,11 +9,15 @@ import {
 } from '../../services/static-alarm-configurations';
 import { insertTrigger } from '../../services/trigger-service';
 import { InstallationPing } from './metric-collector';
+import { TimestreamQueryBuilder } from './query-builder';
 
 type MeasureValueOutput = {
   varcharValue: string | null;
   doubleValue: number | null;
 };
+
+type MetricAnalysisType = 'observation' | 'addon' | 'log' | 'ping';
+type MetricType = 'numeric' | 'log' | 'ping' | 'existence' | 'age';
 
 class MetricAnalyzer {
   private timestreamWriteClient: TimestreamQueryClient;
@@ -30,63 +36,131 @@ class MetricAnalyzer {
   }
 
   async analyzeObservationMetricsAndCreateTriggers(installationId: string): Promise<void> {
+    // TODO: Limit to observation metrics
+    await this.analyzeMetricsAndCreateTriggers(installationId, 'observation');
+  }
+
+  async analyzePingMetricsAndCreateTriggers(installationPings: InstallationPing[]): Promise<void> {
+    for (const installationPing of installationPings) {
+      await this.analyzeMetricsAndCreateTriggers(installationPing.installationId, 'ping');
+    }
+  }
+
+  async analyzeLogMetricsAndCreateTriggers(installationId: string): Promise<void> {
+    // TODO: Limit to log metrics
+    await this.analyzeMetricsAndCreateTriggers(installationId, 'log');
+  }
+
+  async analyzeAddonMetricsAndCreateTriggers(installationId: string): Promise<void> {
+    // TODO: Limit to addon metrics
+    await this.analyzeMetricsAndCreateTriggers(installationId, 'addon');
+  }
+
+  private async analyzeMetricsAndCreateTriggers(
+    installationId: string,
+    metricAnalysisType: MetricAnalysisType,
+  ): Promise<void> {
     for (const config of this.userAlarmConfigurations) {
       const metricName = config.type;
 
-      const sql = `
-        SELECT
-          measure_value::double as dval,
-          measure_value::varchar as vval
-        FROM "${this.databaseName}"."${this.tableName}" 
-        WHERE
-          installation_id = '${installationId}'
-        AND measure_name = '${metricName}' 
-        AND time between ago(3h) and now() 
-        ORDER BY time DESC LIMIT ${config.configuration.datapointCount || 10}
-      `;
+      let select: string;
 
-      const command = new QueryCommand({ QueryString: sql });
+      const shouldGroup =
+        config.type == 'frontend_bad_content' || config.type == 'frontend_ping_unresponsive';
 
-      // for a given metric in the configurations, e.g. host_cpu_usage [x]
-      // check x metrics (check observation # from configuration) [x]
-      // apply statistic function [x]
-      // check if triggered [x]
-      // check if triggered state != current alarm conf state [x]
-      // if they differ, update alarm configuration and insert new trigger [x]
+      if (shouldGroup) {
+        select = `COUNT(healthy) as dval, '' as vval`;
+      } else {
+        select = 'measure_value::double as dval, measure_value::varchar as vval';
+      }
+
+      let commandBuilder = new TimestreamQueryBuilder()
+        .selectFrom(this.databaseName, this.tableName, select)
+        .whereInstallationId(installationId);
+
+      if (metricAnalysisType == 'addon') {
+        commandBuilder = commandBuilder
+          .constrainToAddons(config.configuration.addons ?? [])
+          .whereMetricName(metricName);
+      } else if (metricAnalysisType === 'observation') {
+        commandBuilder = commandBuilder
+          .constrainToZigbeeDevices(config.configuration.zigbee ?? [])
+          .constrainToAutomations(config.configuration.automations ?? [])
+          .constrainToScripts(config.configuration.scripts ?? [])
+          .constrainToScenes(config.configuration.scenes ?? [])
+          .constrainToStorages(config.configuration.storages ?? [])
+          .whereMetricName(metricName);
+      } else if (metricAnalysisType === 'log') {
+        commandBuilder = commandBuilder.constrainToLogTypesOfConfiguration(config.id);
+      } else if (metricAnalysisType === 'ping') {
+        commandBuilder = commandBuilder.whereMetricName('ping_fixed');
+
+        if (config.type == 'frontend_bad_content') {
+          commandBuilder = commandBuilder.andCondition("haContent = 'false'");
+        } else if (config.type == 'frontend_ping_unresponsive') {
+          commandBuilder = commandBuilder.andCondition("healthy = 'false'");
+        }
+      }
+
+      commandBuilder = commandBuilder.betweenTime('8h');
+
+      if (!shouldGroup) {
+        commandBuilder = commandBuilder.orderByTimeDesc();
+      }
+
+      const command = commandBuilder.limit(config.configuration.datapointCount ?? 10).build();
 
       try {
         const result = await this.timestreamWriteClient.send(command);
 
-        const values: MeasureValueOutput[] =
-          result.Rows?.map((row: Row) => {
-            const doubleValue = row.Data?.[0].ScalarValue
-              ? parseFloat(row.Data?.[0].ScalarValue)
-              : null;
-            const varcharValue = row.Data?.[0].ScalarValue ?? null;
-
-            return { varcharValue, doubleValue };
-          }) ?? [];
+        const measureValues: MeasureValueOutput[] =
+          result.Rows?.map((row: Row) => ({
+            doubleValue: row.Data?.[0].ScalarValue ? parseFloat(row.Data[0].ScalarValue) : null,
+            varcharValue: row.Data?.[1].ScalarValue ?? null,
+          })) ?? [];
 
         const minimumDatapoints = config.configuration.datapointCount;
-        if (minimumDatapoints && values.length < minimumDatapoints) {
+        if (minimumDatapoints && measureValues.length < minimumDatapoints) {
           continue;
         }
 
-        if (values.length > 0) {
-          const isTriggered = this.evaluateMetricAgainstConfiguration(values, config);
+        if (measureValues.length > 0) {
+          let metricType: MetricType = this.metricTypeByConfiguration(config);
+          let isTriggered: boolean;
+
+          switch (metricType) {
+            case 'numeric':
+              isTriggered = this.evaluateNumericMetricsAgainstConfiguration(measureValues, config);
+              break;
+            case 'log':
+              isTriggered = this.evaluateLogMetricsAgainstConfiguration(measureValues, config);
+              break;
+            case 'ping':
+              isTriggered = this.evaluatePingMetricsAgainstConfiguration(measureValues, config);
+              break;
+            case 'existence':
+              isTriggered = false; // this.evaluateExistenceMetricsAgainstConfiguration(measureValues, config);
+              break;
+            case 'age':
+              isTriggered = false; // this.evaluateAgeMetricsAgainstConfiguration(measureValues, config);
+            default:
+              isTriggered = false;
+              break;
+          }
+
           const didAlarmChangeState =
             config.state == 'NO_DATA' ||
             (config.state == 'IN_ALARM' && !isTriggered) ||
             (config.state == 'OK' && isTriggered);
 
           if (didAlarmChangeState) {
-            console.log(
-              `Changing alarm for ${metricName} on installation ${installationId} for user ${config.user_id} created at ${config.created_at} based on configuration`,
-            );
-
             const newAlarmState: UserAlarmConfigurationState = isTriggered ? 'IN_ALARM' : 'OK';
 
-            await insertTrigger(installationId, new Date(), config.id, newAlarmState);
+            // Don't create a trigger when state goes from NO_DATA to OK
+            if (config.state !== 'NO_DATA' || (config.state === 'NO_DATA' && isTriggered)) {
+              await insertTrigger(installationId, new Date(), config.id, newAlarmState);
+            }
+
             await updateUserAlarmConfigurationState(
               config.user_id,
               config.created_at,
@@ -95,12 +169,40 @@ class MetricAnalyzer {
           }
         }
       } catch (error) {
-        console.error('Error executing query for metric', metricName, ':', error);
+        console.error(
+          `Error executing query (${command.input.QueryString}) for metric ${metricName}: ${error}`,
+        );
       }
     }
   }
 
-  private evaluateMetricAgainstConfiguration(
+  private evaluateLogMetricsAgainstConfiguration(
+    values: MeasureValueOutput[],
+    config: UserAlarmConfiguration,
+  ): boolean {
+    return (config.configuration.datapointCount ?? 0) <= values.length;
+  }
+
+  private evaluatePingMetricsAgainstConfiguration(
+    values: MeasureValueOutput[],
+    config: UserAlarmConfiguration,
+  ): boolean {
+    switch (config.type) {
+      case 'frontend_ping_unresponsive':
+      case 'frontend_bad_content':
+        return values.length === 0;
+
+      case 'frontend_ping_latency':
+        return this.evaluateNumericMetricsAgainstConfiguration(values, config);
+
+      default:
+        console.error(`Evaluating bad ping type: ${config.type}`);
+        break;
+    }
+    return false;
+  }
+
+  private evaluateNumericMetricsAgainstConfiguration(
     values: MeasureValueOutput[],
     config: UserAlarmConfiguration,
   ): boolean {
@@ -113,33 +215,41 @@ class MetricAnalyzer {
       if (values.length == 1) {
         compared = values[0].doubleValue ?? 0;
       } else {
+        const doubleValues = R.pipe(
+          R.map((v: MeasureValueOutput) => v.doubleValue),
+          R.reject(R.isNil),
+        )(values);
+
         switch (statFunction.function) {
           case 'avg':
-            compared = values.reduce((a, b) => a + (b.doubleValue ?? 0), 0) / values.length;
+            compared = mean(doubleValues);
             break;
           case 'min':
-            compared = values.reduce((a, b) => Math.min(a, b.doubleValue ?? 0), 0);
+            compared = min(doubleValues);
             break;
           case 'max':
-            compared = values.reduce((a, b) => Math.max(a, b.doubleValue ?? 0), 0);
+            compared = max(doubleValues);
             break;
           case 'median':
-            const sortedValues = values.map(v => v.doubleValue ?? 0).sort((a, b) => a - b);
-            const midIndex = Math.floor(sortedValues.length / 2);
-
-            if (sortedValues.length % 2 !== 0) {
-              compared = sortedValues[midIndex];
-            } else {
-              compared = (sortedValues[midIndex - 1] + sortedValues[midIndex]) / 2;
-            }
+            compared = median(doubleValues);
             break;
           case 'p90':
-            const ordinal = Math.ceil((config.configuration.datapointCount ?? 0) * 0.9);
-            const ordered = values.sort((a, b) => (a.doubleValue ?? 0) - (b.doubleValue ?? 0));
-            compared = ordered[ordinal].doubleValue ?? 0;
+            const result = percentile(90, doubleValues);
+
+            if (typeof result === 'number') {
+              compared = result;
+            } else if (Array.isArray(result)) {
+              compared = result[0];
+            } else {
+              console.error(
+                'Failed to evaluate percentile return type in evaluateMetricAgainstConfiguration.',
+              );
+              return false;
+            }
+
             break;
           case 'sum':
-            compared = values.reduce((a, b) => a + (b.doubleValue ?? 0), 0);
+            compared = sum(doubleValues);
             break;
         }
       }
@@ -158,29 +268,46 @@ class MetricAnalyzer {
     return false;
   }
 
-  async analyzePingMetricsAndCreateTriggers(installationPings: InstallationPing[]): Promise<void> {
-    // Logic for analyzing pings and creating triggers
-  }
+  private metricTypeByConfiguration(config: UserAlarmConfiguration) {
+    let metricType: MetricType;
 
-  async analyzeLogMetricsAndCreateTriggers(installationId: string): Promise<void> {
-    // Logic for analyzing logs and creating triggers
-  }
+    switch (config.type) {
+      case 'addon_cpu_usage':
+      case 'addon_memory_usage':
+      case 'host_disk_usage':
+      case 'host_memory_usage':
+      case 'host_cpu_usage':
+      case 'zigbee_device_battery_percentage':
+      case 'zigbee_device_lqi':
+        metricType = 'numeric';
+        break;
 
-  async analyzeAddonMetricsAndCreateTriggers(installationId: string): Promise<void> {
-    // Logic for analyzing addons and creating triggers
-  }
+      case 'ping':
+      case 'frontend_bad_content':
+      case 'frontend_ping_latency':
+      case 'frontend_ping_unresponsive':
+        metricType = 'ping';
+        break;
 
-  private shouldTrigger(record: _Record): boolean {
-    // Logic to determine if the record should trigger an alarm
-    // This might involve comparing the metric value against thresholds in the userAlarmConfigurations
-    return true; // Placeholder, implement your logic
-  }
+      case 'automation_last_trigger_older_than':
+      case 'zigbee_last_updated_older_than':
+      case 'scene_last_trigger_older_than':
+      case 'script_last_trigger_older_than':
+        metricType = 'age';
+        break;
 
-  private containsAlarmsOfType(type: string): boolean {
-    return this.userAlarmConfigurations.some(config => config.type === type);
-  }
+      case 'addon_stopped':
+      case 'addon_update_available':
+      case 'ha_new_version':
+        metricType = 'existence';
+        break;
 
-  // Additional private methods as needed...
+      case 'logs_contain_string':
+        metricType = 'log';
+        break;
+    }
+    return metricType;
+  }
 }
 
 export default MetricAnalyzer;

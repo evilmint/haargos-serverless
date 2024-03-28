@@ -1,5 +1,5 @@
 import { TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
 import axios from 'axios';
 import _ from 'lodash';
 import { performance } from 'perf_hooks';
@@ -8,23 +8,31 @@ import { isLocalDomain } from '../../lib/local-domain.js';
 import MetricAnalyzer from '../../lib/metrics/metric-analyzer.js';
 import MetricCollector, { InstallationPing } from '../../lib/metrics/metric-collector.js';
 import MetricStore from '../../lib/metrics/metric-store.js';
+import { fetchUserAlarmConfigurations } from '../../services/alarm-service.js';
 import { getAllInstallations } from '../../services/installation-service.js';
 
 type InstallationItem = {
   id?: string;
   userId?: string;
   urls: {
-    instance?: { url: string; url_type: 'PRIVATE' | 'PUBLIC'; is_verified: boolean };
+    instance?: { url: string; is_verified: boolean };
   };
   health_statuses: any[];
 };
 
 export async function performInstallationHealthCheck() {
   const publicInstallations: InstallationItem[] = ((await getAllInstallations()).Items ?? [])
-    .map(item => unmarshall(item) as InstallationItem)
+    .map(item => {
+      try {
+        return item as InstallationItem;
+      } catch {
+        console.error(`Failed to decode ${JSON.stringify(item)}`);
+        throw new Error(`Failed to decode ${JSON.stringify(item)}`);
+      }
+    })
     .filter(i => {
       // Filter out private instances or instances without url
-      if (!i.urls.instance?.url || i.urls.instance.url_type == 'PRIVATE') {
+      if (!i.urls.instance?.url) {
         return false;
       }
 
@@ -73,20 +81,29 @@ export async function performInstallationHealthCheck() {
           startDate: startDate,
           responseTimeInMilliseconds: time,
           installationId: installation.id!,
+          userId: installation.userId,
         };
       });
 
     try {
       await metricCollector.analyzePingAndStoreMetrics(installationPings);
 
-      // TODO: Fetch alarm configurations for installation ids in installation pings and pass below
-      const metricAnalyzer = new MetricAnalyzer(
-        [],
-        process.env.TIMESTREAM_METRIC_REGION as string,
-        process.env.TIMESTREAM_METRIC_DATABASE as string,
-        process.env.TIMESTREAM_METRIC_TABLE as string,
-      );
-      await metricAnalyzer.analyzePingMetricsAndCreateTriggers(installationPings);
+      // Do only once per user. Make a set of user ids based on the installation pings
+      for (const installationPing of installationPings) {
+        if (!installationPing.userId) {
+          continue;
+        }
+
+        const alarmConfigurations = await fetchUserAlarmConfigurations(installationPing.userId);
+
+        const metricAnalyzer = new MetricAnalyzer(
+          alarmConfigurations,
+          process.env.TIMESTREAM_METRIC_REGION as string,
+          process.env.TIMESTREAM_METRIC_DATABASE as string,
+          process.env.TIMESTREAM_METRIC_TABLE as string,
+        );
+        await metricAnalyzer.analyzePingMetricsAndCreateTriggers(installationPings);
+      }
     } catch (error) {
       throw new Error('Failed with timestream' + error);
     }
@@ -157,7 +174,7 @@ const buildInstallationHealthStatusesUpdate = (
 ) => {
   const healthStatus = {
     is_up: healthy.value,
-    time: String(timeTaken.toFixed(3)),
+    time: timeTaken.toFixed(3).toString(),
     timestamp: healthy.last_updated,
   };
 

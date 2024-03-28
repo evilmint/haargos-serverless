@@ -1,6 +1,8 @@
 export type AlarmConfigurationType =
   | 'zigbee_device_lqi'
-  | 'ha_ping_unavailability'
+  | 'frontend_ping_unresponsive'
+  | 'frontend_bad_content'
+  | 'frontend_ping_latency'
   | 'host_memory_usage'
   | 'host_cpu_usage'
   | 'ha_new_version'
@@ -229,6 +231,7 @@ export interface UserAlarmConfiguration {
   id: string;
   type: AlarmConfigurationType;
   category: AlarmCategory;
+  description: string;
   user_id: string;
   created_at: string;
   name: string;
@@ -255,6 +258,7 @@ export type UserAlarmConfigurationState = 'IN_ALARM' | 'NO_DATA' | 'OK';
 export interface UserAlarmConfigurationOutput {
   id: string;
   type: string;
+  description: string;
   category: AlarmCategory;
   state: UserAlarmConfigurationState;
   name: string;
