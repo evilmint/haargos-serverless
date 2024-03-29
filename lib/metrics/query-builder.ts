@@ -39,12 +39,12 @@ export class TimestreamQueryBuilder {
     return this;
   }
 
-  constrainToScripts(scripts: { alias: string }[]): this {
+  constrainToScripts(scripts: { unique_id: string }[]): this {
     if (scripts.length === 0) {
       return this;
     }
-    const joinedAliases = scripts.map(s => s.alias).join("', '");
-    this.conditions.push(`alias IN ('${joinedAliases}')`);
+    const joinedAliases = scripts.map(s => s.unique_id).join("', '");
+    this.conditions.push(`id IN ('${joinedAliases}')`);
 
     return this;
   }

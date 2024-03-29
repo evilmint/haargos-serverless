@@ -88,7 +88,7 @@ export async function performInstallationHealthCheck() {
     try {
       await metricCollector.analyzePingAndStoreMetrics(installationPings);
 
-      // Do only once per user. Make a set of user ids based on the installation pings
+      // TODO: Do only once per user. Make a set of user ids based on the installation pings
       for (const installationPing of installationPings) {
         if (!installationPing.userId) {
           continue;

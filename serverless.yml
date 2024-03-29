@@ -265,6 +265,13 @@ functions:
           rate: rate(5 minutes)
           enabled: true
 
+  alarm_processor:
+    handler: jobs/alarm-processor.handler
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: true
+
 resources:
   Resources:
     # Timestream

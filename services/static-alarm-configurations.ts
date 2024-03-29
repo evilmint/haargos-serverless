@@ -239,7 +239,7 @@ export interface UserAlarmConfiguration {
   configuration: {
     datapointCount?: number;
     addons?: { slug: string }[];
-    scripts?: { alias: string }[];
+    scripts?: { unique_id: string }[];
     scenes?: { id: string }[];
     logTypes?: { logType: string }[];
     textCondition?: AlarmConfigurationTextCondition;

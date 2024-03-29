@@ -65,7 +65,7 @@ const AlarmConfigurationSchema = z
       .optional()
       .nullable(),
     scripts: z
-      .array(z.object({ alias: z.string() }).strict())
+      .array(z.object({ unique_id: z.string() }).strict())
       .optional()
       .nullable(),
     scenes: z

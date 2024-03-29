@@ -1,4 +1,4 @@
-import { MeasureValueType, _Record } from '@aws-sdk/client-timestream-write';
+import { Dimension, MeasureValueType, _Record } from '@aws-sdk/client-timestream-write';
 import { createHash } from 'crypto';
 import { z } from 'zod';
 import {
@@ -81,10 +81,7 @@ export default class MetricCollector {
     await this.metricStore.storeMetrics(records);
   }
 
-  async analyzePingAndStoreMetrics(
-    pingData: InstallationPing[],
-    // userAlarmConfigurations: UserAlarmConfiguration[],
-  ): Promise<void> {
+  async analyzePingAndStoreMetrics(pingData: InstallationPing[]): Promise<void> {
     const records: _Record[] = [];
 
     for (const ping of pingData) {
@@ -218,11 +215,14 @@ export default class MetricCollector {
         records.push(
           createRecord(
             observationData.installation_id,
-            'scene_last_trigger_older_than',
-            scene.state,
+            'scene',
+            scene.id,
             date.getTime().toString(),
             'VARCHAR',
-            [{ Name: 'id', Value: scene.id }],
+            [
+              { Name: 'id', Value: scene.id },
+              { Name: 'last_triggered', Value: scene.state },
+            ],
           ),
         );
       }
@@ -246,11 +246,14 @@ export default class MetricCollector {
         records.push(
           createRecord(
             observationData.installation_id,
-            'automation_last_trigger_older_than',
-            automation.last_triggered,
+            'automation',
+            automation.id,
             date.getTime().toString(),
             'VARCHAR',
-            [{ Name: 'id', Value: automation.id }],
+            [
+              { Name: 'id', Value: automation.id },
+              { Name: 'last_triggered', Value: automation.last_triggered },
+            ],
           ),
         );
       }
@@ -260,25 +263,28 @@ export default class MetricCollector {
       const alarmScripts = userAlarmConfigurations
         .filter(a => a.configuration.scripts != null)
         .flatMap(a => a.configuration.scripts!)
-        .flatMap(a => a.alias);
+        .flatMap(a => a.unique_id);
 
-      const observationScripts = (observationData.scripts ?? []).filter(s =>
-        alarmScripts.includes(s.alias),
+      const observationScripts = (observationData.scripts ?? []).filter(
+        s => alarmScripts.includes(s.unique_id ?? ';;;;;'), // TODO: Fix
       );
 
       for (const script of observationScripts) {
-        if (!script.last_triggered || script.last_triggered === '0001-01-01T00:00:00Z') {
+        if (!script.last_triggered || !script.unique_id) {
           continue;
         }
 
         records.push(
           createRecord(
             observationData.installation_id,
-            'script_last_trigger_older_than',
-            script.last_triggered,
+            'script',
+            script.unique_id,
             date.getTime().toString(),
             'VARCHAR',
-            [{ Name: 'alias', Value: script.alias }],
+            [
+              { Name: 'id', Value: script.unique_id },
+              { Name: 'last_triggered', Value: script.last_triggered },
+            ],
           ),
         );
       }
@@ -292,105 +298,38 @@ export default class MetricCollector {
     records: _Record[],
     date: Date,
   ): void {
-    if (this.containsAlarmsOfType(userAlarmConfigurations, 'addon_update_available')) {
-      const alarmAddons = userAlarmConfigurations
-        .filter(a => a.configuration.addons != null)
-        .flatMap(a => a.configuration.addons!)
-        .flatMap(a => a.slug);
+    // Filter addons that are part of any alarm configuration
+    const alarmAddonSlugs = userAlarmConfigurations
+      .filter(config => config.configuration.addons)
+      .flatMap(config => config.configuration.addons)
+      .map(addon => addon?.slug)
+      .filter(slug => !!slug)
+      .map(slug => slug!);
 
-      const observationAddons = addonData.filter(
-        s => alarmAddons.includes(s.name) && s.update_available,
-      );
+    addonData
+      .filter(addon => alarmAddonSlugs.includes(addon.slug))
+      .forEach(addon => {
+        const dimensions: Dimension[] = [];
 
-      for (const addon of observationAddons) {
+        dimensions.push({ Name: 'update_available', Value: addon.update_available.toString() });
+        dimensions.push({ Name: 'state', Value: addon.state });
+
+        if (addon.stats) {
+          dimensions.push({ Name: 'cpu_usage', Value: addon.stats.cpu_percent.toString() });
+          dimensions.push({ Name: 'memory_usage', Value: addon.stats.memory_percent.toString() });
+        }
+
         records.push(
           createRecord(
             installationId,
-            'addon_update_available',
-            addon.update_available.toString(),
-            date.getTime().toString(),
-            'BOOLEAN',
-            [{ Name: 'addon_slug', Value: addon.slug }],
-          ),
-        );
-      }
-    }
-
-    if (this.containsAlarmsOfType(userAlarmConfigurations, 'addon_stopped')) {
-      const alarmAddons = userAlarmConfigurations
-        .filter(a => a.configuration.addons != null)
-        .flatMap(a => a.configuration.addons!)
-        .flatMap(a => a.slug);
-
-      const observationAddons = addonData.filter(
-        s => alarmAddons.includes(s.name) && s.state === 'stopped',
-      );
-
-      for (const addon of observationAddons) {
-        records.push(
-          createRecord(
-            installationId,
-            'addon_stopped',
-            addon.state,
+            'addon',
+            addon.slug,
             date.getTime().toString(),
             'VARCHAR',
-            [{ Name: 'addon_slug', Value: addon.slug }],
+            dimensions,
           ),
         );
-      }
-    }
-
-    if (this.containsAlarmsOfType(userAlarmConfigurations, 'addon_cpu_usage')) {
-      const alarmAddons = userAlarmConfigurations
-        .filter(a => a.configuration.addons != null)
-        .flatMap(a => a.configuration.addons!)
-        .flatMap(a => a.slug);
-
-      const observationAddons = addonData.filter(s => alarmAddons.includes(s.name));
-
-      for (const addon of observationAddons) {
-        if (!addon.stats) {
-          continue;
-        }
-
-        records.push(
-          createRecord(
-            installationId,
-            'addon_cpu_usage',
-            addon.stats.cpu_percent.toString(),
-            date.getTime().toString(),
-            'DOUBLE',
-            [{ Name: 'addon_slug', Value: addon.slug }],
-          ),
-        );
-      }
-    }
-
-    if (this.containsAlarmsOfType(userAlarmConfigurations, 'addon_memory_usage')) {
-      const alarmAddons = userAlarmConfigurations
-        .filter(a => a.configuration.addons != null)
-        .flatMap(a => a.configuration.addons!)
-        .flatMap(a => a.slug);
-
-      const observationAddons = addonData.filter(s => alarmAddons.includes(s.slug));
-
-      for (const addon of observationAddons) {
-        if (!addon.stats) {
-          continue;
-        }
-
-        records.push(
-          createRecord(
-            installationId,
-            'addon_memory_usage',
-            addon.stats.memory_percent.toString(),
-            date.getTime().toString(),
-            'DOUBLE',
-            [{ Name: 'addon_slug', Value: addon.slug }],
-          ),
-        );
-      }
-    }
+      });
   }
 
   private checkZigbeeMetrics(
@@ -399,52 +338,35 @@ export default class MetricCollector {
     records: _Record[],
     date: Date,
   ): void {
-    if (this.containsAlarmsOfCategory(userAlarmConfigurations, 'ZIGBEE')) {
-      const zigbeeDevicesInAlarms = userAlarmConfigurations
-        .filter(a => a.configuration.zigbee != null)
-        .flatMap(a => a.configuration.zigbee!)
-        .flatMap(a => a.ieee);
-
-      const zigbeeObservationDevices =
-        observationData.zigbee?.devices.filter(d => zigbeeDevicesInAlarms.includes(d.ieee)) ?? [];
-
-      for (const device of zigbeeObservationDevices) {
-        records.push(
-          this.createZigbeeRecord(
-            observationData.installation_id,
-            'zig_lqi',
-            device.ieee,
-            device.lqi.toString(),
-            'DOUBLE',
-            date,
-          ),
-        );
-
-        if (device.battery_level) {
-          records.push(
-            this.createZigbeeRecord(
-              observationData.installation_id,
-              'zig_battery',
-              device.ieee,
-              device.battery_level,
-              'DOUBLE',
-              date,
-            ),
-          );
-        }
-
-        records.push(
-          this.createZigbeeRecord(
-            observationData.installation_id,
-            'zig_last_updated',
-            device.ieee,
-            device.last_updated,
-            'VARCHAR',
-            date,
-          ),
-        );
-      }
+    if (!this.containsAlarmsOfCategory(userAlarmConfigurations, 'ZIGBEE')) {
+      return;
     }
+    const zigbeeDevicesInAlarms = userAlarmConfigurations
+      .filter(a => !!a.configuration.zigbee)
+      .flatMap(a => a.configuration.zigbee!)
+      .flatMap(a => a.ieee);
+
+    const zigbeeObservationDevices =
+      observationData.zigbee?.devices.filter(d => zigbeeDevicesInAlarms.includes(d.ieee)) ?? [];
+
+    zigbeeObservationDevices.forEach(device => {
+      const dimensions: Dimension[] = [{ Name: 'ieee', Value: device.ieee }];
+
+      dimensions.push({ Name: 'lqi', Value: device.lqi.toString() });
+      dimensions.push({ Name: 'battery_level', Value: (device.battery_level ?? 0).toString() });
+      dimensions.push({ Name: 'last_updated', Value: device.last_updated });
+
+      records.push(
+        createRecord(
+          observationData.installation_id,
+          'zigbee_device',
+          device.ieee,
+          date.getTime().toString(),
+          'VARCHAR',
+          dimensions,
+        ),
+      );
+    });
   }
 
   private createZigbeeRecord(
