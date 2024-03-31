@@ -209,7 +209,13 @@ class MetricAnalyzer {
 
             // Don't create a trigger when state goes from NO_DATA to OK
             if (config.state !== 'NO_DATA' || (config.state === 'NO_DATA' && isTriggered)) {
-              await insertTrigger(installationId, new Date(), config.id, newAlarmState);
+              await insertTrigger(
+                installationId,
+                config.user_id,
+                new Date(),
+                config.id,
+                newAlarmState,
+              );
             }
 
             await updateUserAlarmConfigurationState(

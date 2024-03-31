@@ -1,4 +1,4 @@
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { User } from '../lib/base-request';
 import { dynamoDbClient } from '../lib/dynamodb';
 
@@ -43,4 +43,21 @@ export async function fetchUserByEmail(email: string): Promise<User> {
   }
 
   return userResponse.Items[0] as User;
+}
+
+export async function getUserById(userId: any) {
+  const userParams: QueryCommandInput = {
+    TableName: process.env.USERS_TABLE,
+    KeyConditionExpression: '#userId = :userId',
+    IndexName: 'userId-index',
+    ExpressionAttributeNames: {
+      '#userId': 'userId',
+    },
+    ExpressionAttributeValues: {
+      ':userId': userId,
+    },
+  };
+
+  const userDataResponse = await dynamoDbClient.send(new QueryCommand(userParams));
+  return userDataResponse.Items?.[0];
 }

@@ -26,6 +26,7 @@ export async function fetchAlarmTriggers(installationId: string) {
 
 export async function insertTrigger(
   installationId: string,
+  userId: string,
   triggeredAt: Date,
   alarmConfigurationId: string,
   alarmState: UserAlarmConfigurationState,
@@ -34,6 +35,7 @@ export async function insertTrigger(
     TableName: process.env.ALARM_TRIGGER_TABLE,
     Item: {
       installation_id: installationId,
+      user_id: userId,
       triggered_at: triggeredAt.toISOString(),
       alarm_configuration: alarmConfigurationId,
       processed: 0,

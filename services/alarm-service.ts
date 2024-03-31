@@ -19,8 +19,58 @@ import {
   staticConfigurations,
 } from './static-alarm-configurations';
 
+const { UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+
 export async function getAlarmConfigurations(userId: string) {
   return staticConfigurations;
+}
+
+interface AlarmConfigurationTrigger {
+  alarm_configuration: string;
+  triggered_at: string;
+  installation_id: string;
+  state: string;
+  user_id: string;
+  processed: number;
+}
+
+export async function markAlarmTriggerAsProcessed(alarmTrigger: AlarmConfigurationTrigger) {
+  const updateParams: UpdateCommandInput = {
+    TableName: process.env.ALARM_TRIGGER_TABLE,
+    Key: {
+      installation_id: { S: alarmTrigger.installation_id },
+      triggered_at: { S: alarmTrigger.triggered_at },
+    },
+    UpdateExpression: 'SET #processed = :processedValue',
+    ExpressionAttributeNames: {
+      '#processed': 'processed',
+    },
+    ExpressionAttributeValues: {
+      ':processedValue': { N: '1' },
+    },
+  };
+
+  await dynamoDbClient.send(new UpdateItemCommand(updateParams));
+}
+
+export async function getUnprocessedAlarmTriggers(
+  limit: number | undefined = 20,
+): Promise<AlarmConfigurationTrigger[]> {
+  const scanParams: QueryCommandInput = {
+    TableName: process.env.ALARM_TRIGGER_TABLE,
+    KeyConditionExpression: '#processed = :processedValue',
+    IndexName: 'processedIndex',
+    ExpressionAttributeNames: {
+      '#processed': 'processed',
+    },
+    ExpressionAttributeValues: {
+      ':processedValue': 0,
+    },
+    Limit: limit,
+  };
+
+  return ((await dynamoDbClient.send(new QueryCommand(scanParams)))?.Items ??
+    []) as AlarmConfigurationTrigger[];
 }
 
 export async function fetchUserAlarmConfigurations(
@@ -85,7 +135,7 @@ export async function createAlarmConfiguration(
   return item as UserAlarmConfigurationOutput;
 }
 
-async function fetchUserAlarmConfiguration(
+export async function fetchUserAlarmConfiguration(
   alarmId: string,
 ): Promise<UserAlarmConfigurationOutput | null> {
   const params: QueryCommandInput = {

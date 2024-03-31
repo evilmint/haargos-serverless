@@ -29,6 +29,13 @@ custom:
   userTableName: 'user-table-${sls:stage}'
   timestreamMetricTableName: 'metrics-${sls:stage}'
   timestreamMetricDatabaseName: 'haargos-metrics-db-${sls:stage}'
+
+  mailOutgingHost: mail.haargos.com
+  mailOutgoingPort: 587
+  mailOutgoingUser: ${env:HAARGOS_MAIL_OUTGOING_USER}
+  mailOutgoingPassword: ${env:HAARGOS_MAIL_OUTGOING_PASSWORD}
+  mailConfigAlarmTriggerFrom: ${env:HAARGOS_MAIL_ALARM_TRIGGER_FROM}
+
   crypto:
     key: ${env:CRYPTO_KEY}
   auth0:
@@ -241,6 +248,14 @@ provider:
     # Settings
     MAX_OBSERVATIONS_KEPT: ${self:custom.maxObservationsKept}
     RETURN_OBSERVATION_COUNT: ${self:custom.returnObservationCount}
+
+    # Mail
+    MAIL_OUTGOING_HOST: ${self:custom.mailOutgingHost}
+    MAIL_OUTGOING_PORT: ${self:custom.mailOutgoingPort}
+    MAIL_OUTGOING_USER: ${self:custom.mailOutgoingUser}
+    MAIL_OUTGOING_PASSWORD: ${self:custom.mailOutgoingPassword}
+
+    MAIL_CONFIG_ALARM_TRIGGER_FROM: ${self:custom.mailConfigAlarmTriggerFrom}
 
     # Misc
     SLS_STAGE: ${sls:stage}
@@ -599,6 +614,12 @@ resources:
           - IndexName: email-index
             KeySchema:
               - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
                 KeyType: HASH
             Projection:
               ProjectionType: ALL

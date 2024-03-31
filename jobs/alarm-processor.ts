@@ -1,72 +1,59 @@
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-const { DynamoDBClient, ScanCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
-const nodemailer = require('nodemailer');
-
-const dynamoDBClient = new DynamoDBClient({ region: 'your-region' });
-
-const alarmTriggerTableName = process.env.ALARM_TRIGGER_TABLE;
-const usersTableName = process.env.USERS_TABLE;
+import nodemailer from 'nodemailer';
+import { Options } from 'nodemailer/lib/mailer';
+import {
+  fetchUserAlarmConfiguration,
+  getUnprocessedAlarmTriggers,
+  markAlarmTriggerAsProcessed,
+} from '../services/alarm-service';
+import { getUserById } from '../services/user-service';
 
 export const handler = async (_event: any) => {
-  const scanParams = {
-    TableName: alarmTriggerTableName,
-    FilterExpression: 'processed = :processedValue',
-    ExpressionAttributeValues: {
-      ':processedValue': { N: '0' },
-    },
-  };
-
   try {
-    const scanResult = await dynamoDBClient.send(new ScanCommand(scanParams));
+    const unprocessedAlarmTriggers = await getUnprocessedAlarmTriggers();
+
+    if (unprocessedAlarmTriggers.length === 0) {
+      return;
+    }
 
     const transporter = nodemailer.createTransport({
-      host: 'mail.haargos.com',
-      port: 587,
+      host: process.env.MAIL_OUTGOING_HOST,
+      port: parseInt(process.env.MAIL_OUTGOING_PORT ?? '587'),
       secure: false,
       auth: {
-        user: 'alerts@haargos.com',
-        pass: 'PRONAi,72,=',
+        user: process.env.MAIL_OUTGOING_USER,
+        pass: process.env.MAIL_OUTGOING_PASSWORD,
       },
     });
 
-    for (const item of scanResult.Items) {
-      const userId = item.user_id.S;
+    // TODO: Fetch all user ids here in case they appear more than once
 
-      const userParams = {
-        TableName: usersTableName,
-        Key: { userId: { S: userId } },
-      };
+    for (const alarmTrigger of unprocessedAlarmTriggers) {
+      const user = await getUserById(alarmTrigger.user_id);
+      const alarmConfiguration = await fetchUserAlarmConfiguration(
+        alarmTrigger.alarm_configuration,
+      );
 
-      const userData = await dynamoDBClient.send(new GetItemCommand(userParams));
+      if (!alarmConfiguration) {
+        console.error(`Could not find alarm config [id=${alarmTrigger.alarm_configuration}]`);
+        continue;
+      }
 
-      if (userData.Item) {
-        const userEmail = userData.Item.email.S;
+      if (user) {
+        const userEmail = user.email;
 
-        const mailOptions = {
-          from: '"Haargos Alerts" <alerts@haargos.com>',
+        const mailOptions: Options = {
+          from: process.env.MAIL_CONFIG_ALARM_TRIGGER_FROM,
           to: userEmail,
-          subject: 'abc',
-          text: 'def',
+          subject: `[ALERTS] Alarm ${alarmConfiguration.name} went into ${alarmTrigger.state}`,
+          text: `Alarm ${alarmConfiguration.name} went into ${alarmTrigger.state} at ${alarmTrigger.triggered_at}.`,
         };
 
-        // Send mail with defined transport object
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent: %s', info.messageId);
+        await transporter.sendMail(mailOptions);
 
-        const updateParams = {
-          TableName: alarmTriggerTableName,
-          Key: {
-            user_id: { S: userId },
-            trigger_id: { S: item.trigger_id.S },
-          },
-          UpdateExpression: 'set processed = :processedValue',
-          ExpressionAttributeValues: {
-            ':processedValue': { N: '1' },
-          },
-        };
-
-        await dynamoDBClient.send(new UpdateItemCommand(updateParams));
-        console.log('Trigger marked as processed for user', userId);
+        // Batch update instead
+        await markAlarmTriggerAsProcessed(alarmTrigger);
+      } else {
+        console.error(`Could not find user by [user_id=${alarmTrigger.user_id}]`);
       }
     }
   } catch (error) {
