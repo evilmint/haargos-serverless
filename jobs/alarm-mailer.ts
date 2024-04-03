@@ -1,3 +1,4 @@
+import moment from 'moment';
 import nodemailer from 'nodemailer';
 import { Options } from 'nodemailer/lib/mailer';
 import {
@@ -41,22 +42,30 @@ export const handler = async (_event: any) => {
       if (user) {
         const userEmail = user.email;
 
+        const formattedTriggeredAtDate = moment(alarmTrigger.triggered_at)
+          .utc()
+          .format('ddd DD MMMM, YYYY HH:mm:ss [UTC]')
+          .toString();
+
+        const subject = `Alarm "${alarmConfiguration.name}" changed to ${alarmTrigger.state}`;
+        const text = `Alarm "${alarmConfiguration.name}" went into ${alarmTrigger.state} at ${formattedTriggeredAtDate}.`;
+
         const mailOptions: Options = {
           from: process.env.MAIL_CONFIG_ALARM_TRIGGER_FROM,
           to: userEmail,
-          subject: `[ALERTS] Alarm ${alarmConfiguration.name} went into ${alarmTrigger.state}`,
-          text: `Alarm ${alarmConfiguration.name} went into ${alarmTrigger.state} at ${alarmTrigger.triggered_at}.`,
+          subject: subject,
+          text: text,
         };
 
         await transporter.sendMail(mailOptions);
 
-        // Batch update instead
+        // TODO: Batch update instead
         await markAlarmTriggerAsProcessed(alarmTrigger);
       } else {
         console.error(`Could not find user by [user_id=${alarmTrigger.user_id}]`);
       }
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Errors:', error);
   }
 };

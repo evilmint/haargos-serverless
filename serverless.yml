@@ -30,6 +30,8 @@ custom:
   timestreamMetricTableName: 'metrics-${sls:stage}'
   timestreamMetricDatabaseName: 'haargos-metrics-db-${sls:stage}'
 
+  alarmMetricRetentionPeriod: 8h
+
   mailOutgingHost: mail.haargos.com
   mailOutgoingPort: 587
   mailOutgoingUser: ${env:HAARGOS_MAIL_OUTGOING_USER}
@@ -249,6 +251,9 @@ provider:
     MAX_OBSERVATIONS_KEPT: ${self:custom.maxObservationsKept}
     RETURN_OBSERVATION_COUNT: ${self:custom.returnObservationCount}
 
+    # Alarms
+    ALARM_METRIC_RETENTION_PERIOD: ${self:custom.alarmMetricRetentionPeriod}
+
     # Mail
     MAIL_OUTGOING_HOST: ${self:custom.mailOutgingHost}
     MAIL_OUTGOING_PORT: ${self:custom.mailOutgoingPort}
@@ -280,8 +285,8 @@ functions:
           rate: rate(5 minutes)
           enabled: true
 
-  alarm_processor:
-    handler: jobs/alarm-processor.handler
+  alarm_mailer:
+    handler: jobs/alarm-mailer.handler
     events:
       - schedule:
           rate: rate(5 minutes)

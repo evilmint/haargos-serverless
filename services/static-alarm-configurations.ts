@@ -245,7 +245,7 @@ export interface UserAlarmConfiguration {
     textCondition?: AlarmConfigurationTextCondition;
     storages?: { name: string }[];
     statFunction?: { function: AlarmConfigurationStatFunction };
-    ltGtThan?: { comparator: string; value: number; valueType: string };
+    ltGtThan?: { comparator: 'lt' | 'gt' | 'lte' | 'gte'; value: number; valueType: string };
     automations?: { id: string; name: string }[];
     zigbee?: { ieee: string }[];
     olderThan?: OlderThanOption;

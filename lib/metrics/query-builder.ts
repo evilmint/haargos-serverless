@@ -110,6 +110,53 @@ export class TimestreamQueryBuilder {
     return this;
   }
 
+  buildHANewVersion(
+    databaseName: string,
+    tableName: string,
+    installationId: string,
+    newestHAVersion: string,
+  ): QueryCommand {
+    return new QueryCommand({
+      QueryString: `
+        SELECT
+          IF(MAX(measure_value::double) < ${newestHAVersion}, 1, 0)  as dval,
+          '' as vval
+        FROM "${databaseName}"."${tableName}"
+        WHERE
+          measure_name = 'ha_version'
+        AND
+          installation_id = '${installationId}' 
+      `,
+    });
+  }
+
+  buildLastTrigger(
+    databaseName: string,
+    tableName: string,
+    installationId: string,
+    ids: string[],
+  ): QueryCommand {
+    const joinedIds = ids.join("', '");
+    return new QueryCommand({
+      QueryString: `
+      SELECT 
+        0 as dval, 
+        MIN(last_triggered) as vval FROM (
+          SELECT 
+            MIN(from_iso8601_timestamp(last_triggered)) as last_triggered
+          FROM "${databaseName}"."${tableName}"
+          WHERE 
+            installation_id = '${installationId}' 
+          AND 
+            id IN ('${joinedIds}')
+          AND
+            last_triggered != '0001-01-01T00:00:00Z'
+          GROUP BY id
+        )
+      `,
+    });
+  }
+
   build(): QueryCommand {
     if (this.conditions.length > 0) {
       this.parts.push('WHERE ' + this.conditions.join(' AND '));

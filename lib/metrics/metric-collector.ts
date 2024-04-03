@@ -1,4 +1,4 @@
-import { Dimension, MeasureValueType, _Record } from '@aws-sdk/client-timestream-write';
+import { Dimension, _Record } from '@aws-sdk/client-timestream-write';
 import { createHash } from 'crypto';
 import { z } from 'zod';
 import {
@@ -135,6 +135,18 @@ export default class MetricCollector {
     records: _Record[],
     date: Date,
   ): void {
+    if (observationData.ha_config?.version) {
+      records.push(
+        createRecord(
+          observationData.installation_id,
+          'ha_version',
+          haConfigVersionToNumber(observationData.ha_config.version).toString(),
+          date.getTime().toString(),
+          'DOUBLE',
+        ),
+      );
+    }
+
     if (this.containsAlarmsOfType(userAlarmConfigurations, 'host_cpu_usage')) {
       records.push(
         createRecord(
@@ -369,19 +381,6 @@ export default class MetricCollector {
     });
   }
 
-  private createZigbeeRecord(
-    installationId: string,
-    metricName: string,
-    ieee: string,
-    metric: any,
-    recordType: MeasureValueType,
-    date: Date,
-  ): _Record {
-    return createRecord(installationId, metricName, metric, date.getTime().toString(), recordType, [
-      { Name: 'ieee', Value: ieee },
-    ]);
-  }
-
   private containsAlarmsOfType(
     configurations: UserAlarmConfiguration[],
     type: AlarmConfigurationType,
@@ -395,4 +394,8 @@ export default class MetricCollector {
   ): boolean {
     return configurations.filter(c => c.category == category).length > 0;
   }
+}
+
+export function haConfigVersionToNumber(version: string): number {
+  return parseInt(version.replace(/\./g, ''));
 }

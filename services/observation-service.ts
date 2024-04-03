@@ -14,7 +14,7 @@ import { Danger } from '../lib/models/danger.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
 import { environmentSchema, observationSchema } from '../lib/zod/observation-schema.js';
 import { fetchUserAlarmConfigurations } from './alarm-service.js';
-import { updateInstallationAgentData } from './installation-service.js';
+import { getLatestRelease, updateInstallationAgentData } from './installation-service.js';
 
 async function getObservations(
   tier: Tier,
@@ -109,6 +109,8 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
     throw new UpgradeTierError('Expired accounts cannot submit observations');
   }
 
+  const latestRelease = (await getLatestRelease()) ?? null;
+
   let putObservationRequest: PutObservationRequest = requestData;
 
   putObservationRequest.userId = user.userId;
@@ -192,6 +194,8 @@ async function putObservation(user: User, agentToken: string, requestData: any) 
         process.env.TIMESTREAM_METRIC_DATABASE as string,
         process.env.TIMESTREAM_METRIC_TABLE as string,
       );
+
+      metricAnalyzer.latestHAVersion = latestRelease;
       await metricAnalyzer.analyzeObservationMetricsAndCreateTriggers(requestData.installation_id);
     } catch (error) {
       throw new Error('Failed with timestream' + error);
