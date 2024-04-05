@@ -1,4 +1,4 @@
-import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, PutCommandInput, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
 
 type Log = {
@@ -11,7 +11,7 @@ export async function fetchLogByInstallationIdAndType(
   installationId: string,
   type: string,
 ): Promise<Log | null> {
-  const logParams = {
+  const logParams: QueryCommandInput = {
     TableName: process.env.LOGS_TABLE,
     KeyConditionExpression: '#installation_id = :installationId AND #type = :type',
     ExpressionAttributeNames: {
@@ -71,7 +71,7 @@ export async function updateLogs(
 
     const processedLogsString = processedLogs.join('\n');
 
-    const upsertParams = {
+    const upsertParams: PutCommandInput = {
       TableName: process.env.LOGS_TABLE,
       Item: {
         installation_id: installationId,
@@ -86,7 +86,7 @@ export async function updateLogs(
       throw error;
     }
   } else {
-    const upsertParams = {
+    const upsertParams: PutCommandInput = {
       TableName: process.env.LOGS_TABLE,
       Item: {
         installation_id: installationId,

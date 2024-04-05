@@ -3,7 +3,7 @@ import { User } from '../lib/base-request';
 import { dynamoDbClient } from '../lib/dynamodb';
 
 export async function fetchUserById(userId: string): Promise<User> {
-  const userParams = {
+  const userParams: QueryCommandInput = {
     TableName: process.env.USERS_TABLE,
     KeyConditionExpression: '#userId = :userId',
     ExpressionAttributeNames: {
@@ -24,7 +24,7 @@ export async function fetchUserById(userId: string): Promise<User> {
 }
 
 export async function fetchUserByEmail(email: string): Promise<User> {
-  const userParams = {
+  const userParams: QueryCommandInput = {
     TableName: process.env.USERS_TABLE,
     IndexName: 'email-index',
     KeyConditionExpression: '#email = :email',

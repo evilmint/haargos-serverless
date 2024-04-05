@@ -1,9 +1,9 @@
-import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, PutCommandInput, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
 import { UserAlarmConfigurationState } from './static-alarm-configurations';
 
 export async function fetchAlarmTriggers(installationId: string) {
-  const triggerParams = {
+  const triggerParams: QueryCommandInput = {
     TableName: process.env.ALARM_TRIGGER_TABLE,
     KeyConditionExpression: '#installation_id = :installationId',
     IndexName: 'installationIdIndex',
@@ -37,7 +37,7 @@ export async function insertTrigger(
   oldState: TriggerState,
   alarmState: TriggerState,
 ) {
-  const upsertParams = {
+  const upsertParams: PutCommandInput = {
     TableName: process.env.ALARM_TRIGGER_TABLE,
     Item: {
       installation_id: installationId,

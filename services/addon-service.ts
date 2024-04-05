@@ -1,5 +1,5 @@
 import { BatchWriteItemCommand, BatchWriteItemCommandInput } from '@aws-sdk/client-dynamodb';
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
 
@@ -24,7 +24,7 @@ type Addon = {
 };
 
 export async function fetchAddonsByInstallationId(installationId: string): Promise<Addon[] | null> {
-  const addonParams = {
+  const addonParams: QueryCommandInput = {
     TableName: process.env.ADDON_TABLE,
     KeyConditionExpression: '#installation_id = :installationId',
     IndexName: 'installationId-index',

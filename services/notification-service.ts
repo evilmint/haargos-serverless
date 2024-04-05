@@ -1,5 +1,5 @@
 import { BatchWriteItemCommand, BatchWriteItemCommandInput } from '@aws-sdk/client-dynamodb';
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
 
@@ -13,7 +13,7 @@ type Notification = {
 export async function fetchNotificationsByInstallationId(
   installationId: string,
 ): Promise<Notification[] | null> {
-  const notificationParams = {
+  const notificationParams: QueryCommandInput = {
     TableName: process.env.NOTIFICATION_TABLE,
     KeyConditionExpression: '#installation_id = :installationId',
     IndexName: 'installationId-index',

@@ -1,4 +1,4 @@
-import { PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, PutCommandInput, QueryCommand, QueryCommandInput, UpdateCommand, UpdateCommandInput } from '@aws-sdk/lib-dynamodb';
 import { addNewSub } from '../lib/add-new-sub';
 import { dynamoDbClient } from '../lib/dynamodb';
 import { Tier } from '../lib/tier-feature-manager';
@@ -13,7 +13,7 @@ async function deleteAccount(userId: string, secret: string) {
     };
 
     // Set active to false and remove PII
-    const updateParams = {
+    const updateParams: UpdateCommandInput = {
       TableName: process.env.USERS_TABLE,
       Key: userPrimaryKey,
       UpdateExpression: 'SET #active = :active, #email = :email, #full_name = :full_name',
@@ -44,7 +44,7 @@ async function updateAccount(userId: string, secret: string, email: string, full
 
     // Set active to false and remove PII
     // Think about how to change e-mail some time later
-    const updateParams = {
+    const updateParams: UpdateCommandInput = {
       TableName: process.env.USERS_TABLE,
       Key: userPrimaryKey,
       UpdateExpression: 'SET #full_name = :full_name',
@@ -79,7 +79,7 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
     const email = userProfile.email;
 
     // Check if a user with this email already exists
-    const queryParams = {
+    const queryParams: QueryCommandInput = {
       TableName: process.env.USERS_TABLE,
       IndexName: 'email-index',
       KeyConditionExpression: 'email = :email',
@@ -101,7 +101,7 @@ async function createAccount(token: string, sub: string, fullName: string): Prom
     const userId = require('crypto').randomUUID(); // Generate a new userId
 
     // Create the account in the USERS_TABLE
-    const putParams = {
+    const putParams: PutCommandInput = {
       TableName: process.env.USERS_TABLE,
       Item: {
         userId: userId,

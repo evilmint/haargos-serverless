@@ -1,7 +1,10 @@
 import { DeleteItemCommand, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommandInput,
+  GetCommandInput,
+  PutCommandInput,
   QueryCommand,
+  QueryCommandInput,
   ScanCommand,
   ScanCommandInput,
   UpdateCommand,
@@ -20,7 +23,7 @@ import { Installation } from '../lib/models/installation.js';
 import { Tier, TierFeatureManager } from '../lib/tier-feature-manager.js';
 
 async function checkInstallation(userId: string, installationId: string) {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.INSTALLATION_TABLE,
     KeyConditionExpression: '#userId = :userId AND #installationId = :installationId',
     ExpressionAttributeNames: {
@@ -41,7 +44,7 @@ async function checkInstallation(userId: string, installationId: string) {
 const getLatestRelease = async () => {
   try {
     // Define the parameters to get the record from DynamoDB
-    const params = {
+    const params: GetCommandInput = {
       TableName: process.env.CONFIGURATION_TABLE,
       Key: marshall({
         id: 'latest_release',
@@ -67,7 +70,7 @@ async function getAllInstallations() {
 }
 
 async function getInstallations(userId: string) {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.INSTALLATION_TABLE,
     KeyConditionExpression: '#userId = :userId',
     ExpressionAttributeNames: {
@@ -86,7 +89,7 @@ async function getInstallation(
   userId: string,
   installationId: string,
 ): Promise<Record<string, any> | undefined> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.INSTALLATION_TABLE,
     KeyConditionExpression: '#userId = :userId AND #installationId = :installationId',
     ExpressionAttributeNames: {
@@ -110,7 +113,7 @@ async function updateInstallationAgentData(
   dangers: Danger[],
 ) {
   try {
-    const installationParams = {
+    const installationParams: UpdateCommandInput = {
       TableName: process.env.INSTALLATION_TABLE,
       Key: {
         userId: userId,
@@ -237,7 +240,7 @@ async function deleteInstallation(userId: string, installationId: string) {
 }
 
 async function countUserInstallations(userId: string): Promise<number> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.INSTALLATION_TABLE,
     KeyConditionExpression: '#userId = :userId',
     ExpressionAttributeNames: {
@@ -335,7 +338,7 @@ async function createInstallation(
     };
   }
 
-  const params = {
+  const params: PutCommandInput = {
     TableName: process.env.INSTALLATION_TABLE,
     Item: marshall(installation),
   };
@@ -375,7 +378,7 @@ async function createDnsVerificationRecord(
     attempts: 0,
   };
 
-  const params = {
+  const params: PutCommandInput = {
     TableName: process.env.DNS_VERIFICATION_TABLE,
     Item: marshall(dnsVerification),
   };

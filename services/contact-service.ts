@@ -1,4 +1,4 @@
-import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, PutCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
 
 export interface Contact {
@@ -10,7 +10,7 @@ export interface Contact {
 export async function postContact(contact: Contact) {
   const id = require('crypto').randomUUID();
 
-  const putParams = {
+  const putParams: PutCommandInput = {
     TableName: process.env.CONTACT_TABLE,
     Item: {
       id: id,

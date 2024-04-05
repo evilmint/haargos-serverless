@@ -1,4 +1,4 @@
-import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, PutCommandInput, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { z } from 'zod';
 import { dynamoDbClient } from '../lib/dynamodb';
 import { supervisorSchema } from '../lib/zod/supervisor-schema';
@@ -8,7 +8,7 @@ type SupervisorInfo = z.infer<typeof supervisorSchema>;
 export async function fetchSupervisorInfoByInstallationId(
   installationId: string,
 ): Promise<SupervisorInfo | null> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.SUPERVISOR_TABLE,
     KeyConditionExpression: '#installation_id = :installationId',
     ExpressionAttributeNames: {
@@ -29,7 +29,7 @@ export async function fetchSupervisorInfoByInstallationId(
 }
 
 export async function updateSupervisorInfo(installationId: string, supervisorInfo: SupervisorInfo) {
-  const putParams = {
+  const putParams: PutCommandInput = {
     TableName: process.env.SUPERVISOR_TABLE,
     Item: {
       ...supervisorInfo,

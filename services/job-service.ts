@@ -1,6 +1,8 @@
 import {
   PutCommand,
+  PutCommandInput,
   QueryCommand,
+  QueryCommandInput,
   TransactWriteCommand,
   TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
@@ -22,7 +24,7 @@ type Job = {
 export async function fetchPendingJobsByInstallationId(
   installationId: string,
 ): Promise<Job[] | null> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.JOB_TABLE,
     IndexName: 'pending-jobs-index',
     KeyConditionExpression: '#status_installation_id = :status_val',
@@ -40,7 +42,7 @@ export async function fetchPendingJobsByInstallationId(
 }
 
 export async function fetchJobsByInstallationId(installationId: string): Promise<Job[] | null> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.JOB_TABLE,
     KeyConditionExpression: '#installation_id = :installation_id',
     ExpressionAttributeNames: {
@@ -64,7 +66,7 @@ export async function fetchJobsByInstallationId(installationId: string): Promise
 }
 
 export async function fetchJobById(installationId: string, jobId: string): Promise<Job | null> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.JOB_TABLE,
     KeyConditionExpression: '#installation_id = :installationId AND #id = :jobId',
     IndexName: 'jobs-id-installation_id-index',
@@ -85,8 +87,8 @@ export async function fetchJobById(installationId: string, jobId: string): Promi
 type JobInput = z.infer<typeof submitJobSchema>;
 
 export async function insertJob(job: JobInput, installationId: string) {
-  const now = moment(new Date()).utc().format('YYYY-MM-DD HH:mm:ss');
-  const params = {
+  const now = moment(new Date()).utc().format();
+  const params: PutCommandInput = {
     TableName: process.env.JOB_TABLE,
     Item: {
       id: randomUUID(),
@@ -105,8 +107,8 @@ export async function markJobAsCompleted(job: Job) {
   const newJob = {
     ...job,
     status_installation_id: `completed_${job.installation_id}`,
-    created_at: moment(job.created_at).add(1, 'second').format('YYYY-MM-DD HH:mm:ss'),
-    updated_at: moment(new Date()).utc().format('YYYY-MM-DD HH:mm:ss'),
+    created_at: moment(job.created_at).add(1, 'second').utc().format(),
+    updated_at: moment(new Date()).utc().format(),
   };
 
   const transactItems: TransactWriteCommandInput = {

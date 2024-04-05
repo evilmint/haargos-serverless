@@ -1,4 +1,4 @@
-import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, PutCommandInput, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { z } from 'zod';
 import { dynamoDbClient } from '../lib/dynamodb';
 import { osSchema } from '../lib/zod/os-schema';
@@ -6,7 +6,7 @@ import { osSchema } from '../lib/zod/os-schema';
 type OsInfo = z.infer<typeof osSchema>;
 
 export async function fetchOsInfoByInstallationId(installationId: string): Promise<OsInfo | null> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.OS_TABLE,
     KeyConditionExpression: '#installation_id = :installationId',
     ExpressionAttributeNames: {
@@ -27,7 +27,7 @@ export async function fetchOsInfoByInstallationId(installationId: string): Promi
 }
 
 export async function updateOsInfo(installationId: string, osInfo: OsInfo) {
-  const putParams = {
+  const putParams: PutCommandInput = {
     TableName: process.env.OS_TABLE,
     Item: {
       ...osInfo,

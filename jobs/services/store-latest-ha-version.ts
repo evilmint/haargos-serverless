@@ -1,4 +1,5 @@
 import { UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import { UpdateCommandInput } from '@aws-sdk/lib-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import axios, { AxiosResponse } from 'axios';
 import { dynamoDbClient } from '../../lib/dynamodb.js';
@@ -11,7 +12,7 @@ export async function retrieveAndStoreLatestHAVersion(): Promise<void> {
 
   const latestRelease = response.data.tag_name;
 
-  const params = {
+  const params: UpdateCommandInput = {
     TableName: process.env.CONFIGURATION_TABLE,
     Key: marshall({ id: 'latest_release' }),
     UpdateExpression: 'set version = :v',

@@ -78,7 +78,7 @@ export async function getUnprocessedAlarmTriggers(
 export async function fetchUserAlarmConfigurations(
   userId: string,
 ): Promise<UserAlarmConfiguration[]> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.ALARM_CONFIGURATION_TABLE,
     KeyConditionExpression: '#user_id = :user_id',
     ExpressionAttributeNames: {

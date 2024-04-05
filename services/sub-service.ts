@@ -1,4 +1,4 @@
-import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, QueryCommandInput, UpdateCommand, UpdateCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
 
 export interface SubRecord {
@@ -7,7 +7,7 @@ export interface SubRecord {
 }
 
 export async function fetchSubRecord(sub: string): Promise<SubRecord> {
-  const params = {
+  const params: QueryCommandInput = {
     TableName: process.env.SUB_TABLE,
     KeyConditionExpression: '#sub = :sub',
     ExpressionAttributeNames: {
@@ -32,7 +32,7 @@ export async function fetchSubRecord(sub: string): Promise<SubRecord> {
 
 export async function verifySubEmail(sub: string) {
   try {
-    const updateParams = {
+    const updateParams: UpdateCommandInput = {
       TableName: process.env.SUB_TABLE,
       Key: { sub: sub },
       UpdateExpression: 'SET #email_verified = :email_verified',
