@@ -18,6 +18,7 @@ import {
   UserAlarmConfigurationState,
   staticConfigurations,
 } from './static-alarm-configurations';
+import { TriggerState } from './trigger-service';
 
 const { UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
 
@@ -25,11 +26,12 @@ export async function getAlarmConfigurations(userId: string) {
   return staticConfigurations;
 }
 
-interface AlarmConfigurationTrigger {
+export interface AlarmConfigurationTrigger {
   alarm_configuration: string;
   triggered_at: string;
   installation_id: string;
-  state: string;
+  state: TriggerState;
+  old_state: TriggerState;
   user_id: string;
   processed: number;
 }
@@ -116,7 +118,8 @@ export async function createAlarmConfiguration(
   const item = {
     ...alarmConfiguration,
     id: id,
-    created_at: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
+    created_at: moment(new Date()).utc().format(),
+    updated_at: moment(new Date()).utc().format(),
     user_id: userId,
     state: 'NO_DATA',
     deleted: false,
@@ -191,6 +194,7 @@ export interface OlderThanOption {
 export async function updateUserAlarmConfigurationState(
   userId: string,
   created_at: string,
+  updated_at: string,
   state: UserAlarmConfigurationState,
 ): Promise<void> {
   const userPrimaryKey = {
@@ -201,12 +205,14 @@ export async function updateUserAlarmConfigurationState(
   const updateParams: UpdateCommandInput = {
     TableName: process.env.ALARM_CONFIGURATION_TABLE,
     Key: userPrimaryKey,
-    UpdateExpression: 'SET #state = :state',
+    UpdateExpression: 'SET #state = :state, #updated_at = :updated_at',
     ExpressionAttributeNames: {
       '#state': 'state',
+      '#updated_at': 'updated_at',
     },
     ExpressionAttributeValues: {
       ':state': state,
+      ':updated_at': updated_at,
     },
   };
 

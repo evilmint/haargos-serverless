@@ -24,12 +24,18 @@ export async function fetchAlarmTriggers(installationId: string) {
   return triggersResponse.Items;
 }
 
+export type TriggerState = {
+  state: UserAlarmConfigurationState;
+  date: string;
+};
+
 export async function insertTrigger(
   installationId: string,
   userId: string,
   triggeredAt: Date,
   alarmConfigurationId: string,
-  alarmState: UserAlarmConfigurationState,
+  oldState: TriggerState,
+  alarmState: TriggerState,
 ) {
   const upsertParams = {
     TableName: process.env.ALARM_TRIGGER_TABLE,
@@ -39,6 +45,7 @@ export async function insertTrigger(
       triggered_at: triggeredAt.toISOString(),
       alarm_configuration: alarmConfigurationId,
       processed: 0,
+      old_state: oldState,
       state: alarmState,
     },
   };

@@ -85,7 +85,7 @@ export async function fetchJobById(installationId: string, jobId: string): Promi
 type JobInput = z.infer<typeof submitJobSchema>;
 
 export async function insertJob(job: JobInput, installationId: string) {
-  const now = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
+  const now = moment(new Date()).utc().format('YYYY-MM-DD HH:mm:ss');
   const params = {
     TableName: process.env.JOB_TABLE,
     Item: {
@@ -106,7 +106,7 @@ export async function markJobAsCompleted(job: Job) {
     ...job,
     status_installation_id: `completed_${job.installation_id}`,
     created_at: moment(job.created_at).add(1, 'second').format('YYYY-MM-DD HH:mm:ss'),
-    updated_at: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
+    updated_at: moment(new Date()).utc().format('YYYY-MM-DD HH:mm:ss'),
   };
 
   const transactItems: TransactWriteCommandInput = {

@@ -234,6 +234,7 @@ export interface UserAlarmConfiguration {
   description: string;
   user_id: string;
   created_at: string;
+  updated_at: string;
   name: string;
   state: UserAlarmConfigurationState;
   configuration: {

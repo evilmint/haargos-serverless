@@ -286,7 +286,7 @@ functions:
           enabled: true
 
   alarm_mailer:
-    handler: jobs/alarm-mailer.handler
+    handler: jobs/alarm-mailer/alarm-mailer.handler
     events:
       - schedule:
           rate: rate(5 minutes)

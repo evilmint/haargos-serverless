@@ -11,7 +11,7 @@ import {
   UserAlarmConfiguration,
   UserAlarmConfigurationState,
 } from '../../services/static-alarm-configurations';
-import { insertTrigger } from '../../services/trigger-service';
+import { TriggerState, insertTrigger } from '../../services/trigger-service';
 import { InstallationPing, haConfigVersionToNumber } from './metric-collector';
 import { TimestreamQueryBuilder } from './query-builder';
 const asc = arr => arr.sort((a, b) => a - b);
@@ -293,18 +293,23 @@ class MetricAnalyzer {
 
             // Don't create a trigger when state goes from NO_DATA to OK
             if (config.state !== 'NO_DATA' || (config.state === 'NO_DATA' && isTriggered)) {
-              await insertTrigger(
-                installationId,
-                config.user_id,
-                new Date(),
-                config.id,
-                newAlarmState,
-              );
+              const date = new Date();
+
+              const oldState: TriggerState = {
+                date: config.updated_at,
+                state: config.state,
+              };
+              const state: TriggerState = {
+                date: date.toISOString(),
+                state: newAlarmState,
+              };
+              await insertTrigger(installationId, config.user_id, date, config.id, oldState, state);
             }
 
             await updateUserAlarmConfigurationState(
               config.user_id,
               config.created_at,
+              moment().utc().format(),
               newAlarmState,
             );
           }
