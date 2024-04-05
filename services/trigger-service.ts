@@ -1,4 +1,4 @@
-import { PutCommand, PutCommandInput, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, PutCommandInput, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient } from '../lib/dynamodb';
 import { UserAlarmConfigurationState } from './static-alarm-configurations';
 
